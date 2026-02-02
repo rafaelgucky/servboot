@@ -1,0 +1,12 @@
+[
+  {
+    "url": "/api/person/find",
+    "clazz": "net.servboot.controllers.PersonController",
+    "method": "findAll"
+  },
+  {
+    "url": "/api/person/create",
+    "clazz": "net.servboot.controllers.PersonController",
+    "method": "create"
+  }
+]
