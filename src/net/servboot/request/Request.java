@@ -43,9 +43,13 @@ public class Request {
         if(pairs[0].contains("Content-Length")){
             contentLength = Integer.parseInt(pairs[1]);
         } else if(pairs[0].contains("Content-Type")){
-            this.contentType = pairs[1].substring(0, pairs[1].contains(";") ? pairs[1].indexOf(";") : pairs[1].length()).trim();
-        }
-        else if(pairs[0].contains("Cookie")){
+            if(pairs[1].contains("multipart/form-data")){
+                this.contentType = pairs[1].substring(0, pairs[1].contains(";") ? pairs[1].indexOf(";") : pairs[1].length()).trim();
+                String boundary = pairs[1].substring(pairs[1].indexOf("=") + 1);
+                pairs[0] = "boundary";
+                pairs[1] = boundary;
+            }
+        } else if(pairs[0].contains("Cookie")){
             if(pairs[1].contains(";")){
                 pairs = pairs[1].split(";");
             } else if(!pairs[1].contains("=")) return;

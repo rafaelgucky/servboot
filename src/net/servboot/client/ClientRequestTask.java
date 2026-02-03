@@ -5,6 +5,7 @@ import net.servboot.headers.HeaderBuilder;
 import net.servboot.headers.Headers;
 import net.servboot.io.FormDataReader;
 import net.servboot.io.RequestBufferedReader;
+import net.servboot.io.ShortArrayInputStream;
 import net.servboot.request.Request;
 import net.servboot.request.RequestMapper;
 import net.servboot.utils.inputstream.ByteArrayInputStreamUtils;
@@ -41,7 +42,8 @@ public final class ClientRequestTask extends Thread {
         try {
             out = client.getOutputStream();
             InputStream in =  client.getInputStream();
-            InputStreamReader isr = new InputStreamReader(ByteArrayInputStreamUtils.readRequestHeader(in), StandardCharsets.UTF_8);
+            ShortArrayInputStream shortArray = new ShortArrayInputStream(in);
+            InputStreamReader isr = new InputStreamReader(shortArray, StandardCharsets.UTF_8);
             RequestBufferedReader rbr = new RequestBufferedReader(isr);
             RequestMapper requestMapper = new RequestMapper();
             boolean isFavicon = false;
@@ -70,7 +72,7 @@ public final class ClientRequestTask extends Thread {
                     if(request.getContentType().contains("multipart/form-data")
                         || request.getContentType().contains("json"))
                     {
-                        FormDataReader fdr = new FormDataReader(in, isr, "---------------------", request.getContentLength());
+                        FormDataReader fdr = new FormDataReader(in, isr, shortArray, "---------------------", request.getContentLength());
                         Map<String, Object> formData = fdr.readFormData();
                         for(Map.Entry<String, Object> entry : formData.entrySet()){
                             System.out.println(entry.getKey() + ": " + entry.getValue());

@@ -7,16 +7,18 @@ import java.util.*;
 public class FormDataReader {
     private final InputStream in;
     private InputStreamReader reader;
+    private final ShortArrayInputStream shortArray;
     private final String boundary;
     private char[] buffer;
     private long length;
     private long totalReady = 0;
 
-    public FormDataReader(InputStream in, InputStreamReader isr, String boundary, long length) {
+    public FormDataReader(InputStream in, InputStreamReader isr, ShortArrayInputStream shortArray, String boundary, long length) {
         this.in = in;
         this.reader = isr;
         this.boundary = boundary;
         this.length = length;
+        this.shortArray = shortArray;
     }
 
     public Map<String, Object> readFormData() {
@@ -27,10 +29,10 @@ public class FormDataReader {
             while (totalReady < length) {
                 String line = readLine();
                 if (!line.contains(boundary)) {
-                    List<Integer> bytes = new LinkedList<>();
+                    List<Integer> bytes;
                     if (line.contains("Content-Type")) {
                         bytes = readBytes();
-                        File file = new File("teste.txt");
+                        File file = new File("teste.jpg");
                         if(!file.exists()){file.createNewFile();}
                         try (FileOutputStream fos = new FileOutputStream(file)) {
                             for(int b : bytes){
@@ -61,6 +63,7 @@ public class FormDataReader {
         char[] tempBuffer = new char[1];
 
         try{
+            shortArray.reload((short) 10);
             do{
                 totalReady += reader.read(tempBuffer);
                 line += tempBuffer[0];
@@ -76,25 +79,23 @@ public class FormDataReader {
     private List<Integer> readBytes(){
         List<Integer> bytes = new LinkedList<>();
         int[] tempBuffer = new int[8096];
-        //byte[] tempBuffer = new byte[boundary.length()];
+
         try{
-            reader = null;
+            shortArray.reload((short) 10);
             do{
+                int tempTotalRead = 0;
                 int length = 0;
                 int readed;
                 do{
                     readed = in.read();
                     System.out.print(readed + " ");
-                    totalReady += readed > 127 ? 2 : 1;
+                    totalReady++;
+                    tempTotalRead++;
                     tempBuffer[length++] = readed;
                 }
                 while(readed != 10);
-//                for(int i = 0; i < boundary.length(); i++){
-//                    tempBuffer[i] = reader.read();
-//                    totalReady += tempBuffer[i] > 127 ? 2 : 1;
-//                }
                 if(!bytesToString(tempBuffer).contains(boundary)){
-                    for(int i = 0; i < boundary.length(); i++){
+                    for(int i = 0; i < tempTotalRead; i++){
                         System.out.print(tempBuffer[i]);
                         bytes.add(tempBuffer[i]);
                     }

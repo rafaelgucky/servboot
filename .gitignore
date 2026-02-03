@@ -30,8 +30,8 @@ bin/
 
 ### Files ###
 
-.txt
-.jpg
-.jpeg
-.png
-.pdf
+*.txt
+*.jpg
+*.jpeg
+*.png
+*.pdf
