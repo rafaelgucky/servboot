@@ -1,7 +1,10 @@
 package net.servboot.io;
 
+import net.servboot.utils.io.NameGenerator;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.*;
 
 public class FormDataReader {
@@ -9,7 +12,6 @@ public class FormDataReader {
     private InputStreamReader reader;
     private final ShortArrayInputStream shortArray;
     private final String boundary;
-    private char[] buffer;
     private long length;
     private long totalReady = 0;
 
@@ -23,7 +25,8 @@ public class FormDataReader {
 
     public Map<String, Object> readFormData() {
         Map<String, Object> formData = new LinkedHashMap<>();
-        buffer = new char[boundary.length() + 2];
+
+        shortArray.reload((short) 10);
 
         try{
             while (totalReady < length) {
@@ -31,8 +34,11 @@ public class FormDataReader {
                 if (!line.contains(boundary)) {
                     List<Integer> bytes;
                     if (line.contains("Content-Type")) {
+                        String temp = line.split(":")[1].trim();
+                        String contentType = temp.substring(temp.indexOf("/") + 1);
+
                         bytes = readBytes();
-                        File file = new File("teste.jpg");
+                        File file = new File(NameGenerator.generateName(contentType));
                         if(!file.exists()){file.createNewFile();}
                         try (FileOutputStream fos = new FileOutputStream(file)) {
                             for(int b : bytes){
@@ -42,8 +48,7 @@ public class FormDataReader {
                             System.out.println("Erro ao escrever no arquivo: " + ex.getMessage());
                             ex.printStackTrace();
                         }
-                    }
-                    if (!line.contains("filename=\"")) {
+                    } else if (!line.isEmpty() && !line.equals("--") && !line.contains("filename=\"")) {
                         String key = line.substring(line.indexOf("\"") + 1, line.indexOf("\"", line.indexOf("\"") + 1));
                         readLine();
                         String value = readLine();
@@ -63,9 +68,13 @@ public class FormDataReader {
         char[] tempBuffer = new char[1];
 
         try{
-            shortArray.reload((short) 10);
             do{
-                totalReady += reader.read(tempBuffer);
+                int readed = reader.read(tempBuffer);
+                if(readed == -1) {
+                    shortArray.reload((short) 10);
+                    readed = reader.read(tempBuffer);
+                }
+                totalReady += readed;
                 line += tempBuffer[0];
             } while(tempBuffer[0] != 10 && (totalReady + tempBuffer.length) <= length);
         } catch (IOException ex) {
@@ -78,25 +87,25 @@ public class FormDataReader {
 
     private List<Integer> readBytes(){
         List<Integer> bytes = new LinkedList<>();
-        int[] tempBuffer = new int[8096];
+        int[] tempBuffer = new int[this.boundary.length() + 2];
 
         try{
-            shortArray.reload((short) 10);
+            // Consume linhas vazia para chegar aos bytes do arquivo
+            while(!shortArray.reload((short) 10));
+
             do{
                 int tempTotalRead = 0;
                 int length = 0;
                 int readed;
                 do{
                     readed = in.read();
-                    System.out.print(readed + " ");
                     totalReady++;
                     tempTotalRead++;
                     tempBuffer[length++] = readed;
                 }
-                while(readed != 10);
+                while(readed != 10 && length < tempBuffer.length);
                 if(!bytesToString(tempBuffer).contains(boundary)){
                     for(int i = 0; i < tempTotalRead; i++){
-                        System.out.print(tempBuffer[i]);
                         bytes.add(tempBuffer[i]);
                     }
                 } else {

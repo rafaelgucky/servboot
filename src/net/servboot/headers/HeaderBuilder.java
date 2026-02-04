@@ -32,7 +32,7 @@ public final class HeaderBuilder {
                 break;
             case 1:
                 header.append("HTTP/1.1 200 OK\r\n");
-                header.append("Content-Type: image/xico\r\n");
+                header.append("Content-Type: image/x-icon\r\n");
                 header.append("Content-Length: ");
                 header.append(contentLength);
                 header.append("\r\n");

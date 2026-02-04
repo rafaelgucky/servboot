@@ -39,6 +39,8 @@ public final class ClientRequestTask extends Thread {
     @Override
     public void run() {
         OutputStream out = null;
+        boolean isFavicon = false;
+
         try {
             out = client.getOutputStream();
             InputStream in =  client.getInputStream();
@@ -46,10 +48,12 @@ public final class ClientRequestTask extends Thread {
             InputStreamReader isr = new InputStreamReader(shortArray, StandardCharsets.UTF_8);
             RequestBufferedReader rbr = new RequestBufferedReader(isr);
             RequestMapper requestMapper = new RequestMapper();
-            boolean isFavicon = false;
 
             String url = rbr.readHeaderLine();
-            if(url.isEmpty()) return;
+            if(url.isEmpty()){
+                isFavicon = true;
+                return;
+            }
             Request request = requestMapper.map(url);
 
             System.out.println(url);
@@ -68,11 +72,11 @@ public final class ClientRequestTask extends Thread {
                 }
 
                 if(request.getContentLength() > 0){
-                    client.setSoTimeout(15000);
+                    //client.setSoTimeout(15000);
                     if(request.getContentType().contains("multipart/form-data")
                         || request.getContentType().contains("json"))
                     {
-                        FormDataReader fdr = new FormDataReader(in, isr, shortArray, "---------------------", request.getContentLength());
+                        FormDataReader fdr = new FormDataReader(in, isr, shortArray, request.getHeader("boundary"), request.getContentLength());
                         Map<String, Object> formData = fdr.readFormData();
                         for(Map.Entry<String, Object> entry : formData.entrySet()){
                             System.out.println(entry.getKey() + ": " + entry.getValue());
@@ -132,7 +136,7 @@ public final class ClientRequestTask extends Thread {
             System.out.println(ex.getMessage());
             ex.printStackTrace();
         } finally {
-            if(out != null){
+            if(!isFavicon && out != null){
                 try{
                     File body = new File(currentPath + homePath);
                     InputStream is = new FileInputStream(body);
@@ -140,7 +144,7 @@ public final class ClientRequestTask extends Thread {
                     out.write(HeaderBuilder.build(Headers.TEXT_HTML, body.length()));
                     out.write(is.readAllBytes());
                     out.flush();
-                    out.close();
+                    //out.close();
                 } catch (IOException ex) {
                     System.out.println("Erro ao fechar a stream de saída: " + ex.getMessage());
                     ex.printStackTrace();
