@@ -4,6 +4,7 @@ import net.servboot.utils.io.NameGenerator;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
@@ -11,6 +12,7 @@ public class FormDataReader {
     private final InputStream in;
     private InputStreamReader reader;
     private final ShortArrayInputStream shortArray;
+    File baseDir = new File("temp");
     private final String boundary;
     private long length;
     private long totalReady = 0;
@@ -26,7 +28,7 @@ public class FormDataReader {
     public Map<String, Object> readFormData() {
         Map<String, Object> formData = new LinkedHashMap<>();
 
-        shortArray.reload((short) 10);
+        totalReady += shortArray.reload((short) 10);
 
         try{
             while (totalReady < length) {
@@ -36,18 +38,8 @@ public class FormDataReader {
                     if (line.contains("Content-Type")) {
                         String temp = line.split(":")[1].trim();
                         String contentType = temp.substring(temp.indexOf("/") + 1);
-
-                        bytes = readBytes();
-                        File file = new File(NameGenerator.generateName(contentType));
-                        if(!file.exists()){file.createNewFile();}
-                        try (FileOutputStream fos = new FileOutputStream(file)) {
-                            for(int b : bytes){
-                                fos.write(b);
-                            }
-                        } catch (IOException ex) {
-                            System.out.println("Erro ao escrever no arquivo: " + ex.getMessage());
-                            ex.printStackTrace();
-                        }
+                        File file = readBytes(contentType);
+                        formData.put("file", file);
                     } else if (!line.isEmpty() && !line.equals("--") && !line.contains("filename=\"")) {
                         String key = line.substring(line.indexOf("\"") + 1, line.indexOf("\"", line.indexOf("\"") + 1));
                         readLine();
@@ -74,7 +66,8 @@ public class FormDataReader {
                     shortArray.reload((short) 10);
                     readed = reader.read(tempBuffer);
                 }
-                totalReady += readed;
+                if(readed > 127) System.out.println("MAIOR");
+                totalReady += readed > 127 ? 2 : 1;
                 line += tempBuffer[0];
             } while(tempBuffer[0] != 10 && (totalReady + tempBuffer.length) <= length);
         } catch (IOException ex) {
@@ -85,13 +78,29 @@ public class FormDataReader {
         return line.replace("\r", "").replace("\n", "");
     }
 
-    private List<Integer> readBytes(){
-        List<Integer> bytes = new LinkedList<>();
+    private File readBytes(String extension){
+        File file;
         int[] tempBuffer = new int[this.boundary.length() + 2];
 
+        do{
+            file = new File("temp\\" + NameGenerator.generateName(extension));
+        } while (file.exists());
+
         try{
+            if(!baseDir.exists()){
+                Files.createDirectory(Path.of("temp"));
+            }
+            if(!file.createNewFile()) throw new IOException("Erro ao criar o arquivo: " + file.getName());
+        } catch (IOException ex) {
+            System.out.println("Erro ao criar arquivo: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+
+        try(FileOutputStream fos = new FileOutputStream(file)){
             // Consume linhas vazia para chegar aos bytes do arquivo
-            while(!shortArray.reload((short) 10));
+            int tempReaded = 0;
+            while((tempReaded += shortArray.reload((short) 10)) >= 50);
+            totalReady += tempReaded;
 
             do{
                 int tempTotalRead = 0;
@@ -106,7 +115,7 @@ public class FormDataReader {
                 while(readed != 10 && length < tempBuffer.length);
                 if(!bytesToString(tempBuffer).contains(boundary)){
                     for(int i = 0; i < tempTotalRead; i++){
-                        bytes.add(tempBuffer[i]);
+                        fos.write(tempBuffer[i]);
                     }
                 } else {
                     System.out.println("ACHOU FIM");
@@ -117,7 +126,7 @@ public class FormDataReader {
             System.out.println("Erro ao ler bytes do arquivo: " + ex.getMessage());
             ex.printStackTrace();
         }
-        return bytes;
+        return file;
     }
 
     private String bytesToString(int[] bytes){

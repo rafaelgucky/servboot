@@ -5,6 +5,7 @@ import net.servboot.controllers.ControllerBase;
 import net.servboot.request.Request;
 import net.servboot.utils.json.Json;
 
+import java.io.File;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -44,7 +45,10 @@ public class ReflectionUtils {
             return (T) Double.valueOf(value.toString());
         } else if(clazz.equals(String.class)){
             return (T) value;
-        } else {
+        } else if(clazz.equals(File.class)){
+            return (T) value;
+        }
+        else {
             return (T) value;
         }
     }
@@ -56,9 +60,13 @@ public class ReflectionUtils {
         relation = new LinkedHashMap<>();
 
         for(Parameter parameter :  parameters){
+            File file;
             if(request.getParameters().containsKey(parameter.getName())){
                 relation.put(request.getParameters().get(parameter.getName()), parameter);
-            } else {
+            } else if((file = request.getFile(parameter.getName().toLowerCase())) != null){
+                relation.put(file, parameter);
+            }
+            else {
                 if(Arrays.stream(request.getMethod().getAnnotations()).anyMatch(a -> a.annotationType().equals(GET.class))) throw new RuntimeException("JSON não permitido para métodos GET");
                 try{
                     relation.put(parameter.getType().cast(Json.decode(request.getStringBody(), parameter.getType())), parameter);
@@ -104,6 +112,21 @@ public class ReflectionUtils {
                     break;
                 case 5:
                     request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3), params.get(4));
+                    break;
+                case 6:
+                    request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3), params.get(4), params.get(5));
+                    break;
+                case 7:
+                    request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3), params.get(4), params.get(5), params.get(6));
+                    break;
+                case 8:
+                    request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3), params.get(4), params.get(5), params.get(6), params.get(7));
+                    break;
+                case 9:
+                    request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3), params.get(4), params.get(5), params.get(6), params.get(7), params.get(8));
+                    break;
+                case 10:
+                    request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3), params.get(4), params.get(5), params.get(6), params.get(7), params.get(8), params.get(9));
                     break;
                 default:
                     System.out.println("NECESSÁRIO ADICIONAR SUPORTE A MAIS PARÂMETROS");

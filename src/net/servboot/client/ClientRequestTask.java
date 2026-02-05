@@ -73,12 +73,16 @@ public final class ClientRequestTask extends Thread {
 
                 if(request.getContentLength() > 0){
                     //client.setSoTimeout(15000);
-                    if(request.getContentType().contains("multipart/form-data")
-                        || request.getContentType().contains("json"))
+                    if(request.getContentType().contains("multipart/form-data"))
                     {
                         FormDataReader fdr = new FormDataReader(in, isr, shortArray, request.getHeader("boundary"), request.getContentLength());
                         Map<String, Object> formData = fdr.readFormData();
                         for(Map.Entry<String, Object> entry : formData.entrySet()){
+                            if(entry.getValue() instanceof File file){
+                                request.addFile(entry.getKey(), file);
+                            } else{
+                                request.addParameter(entry.getKey(), entry.getValue().toString());
+                            }
                             System.out.println(entry.getKey() + ": " + entry.getValue());
                         }
                         //request.setStringBody(rbr.readBody(request.getContentLength()));

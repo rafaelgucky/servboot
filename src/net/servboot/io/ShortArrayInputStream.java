@@ -23,26 +23,22 @@ public class ShortArrayInputStream extends InputStream {
         return buffer[pointer++];
     }
 
-    public boolean reload(short targetChar){
+    public byte reload(short targetChar){
         byte current = 0;
 
         pointer = 0;
 
         try{
             do {
-                if(current >= MAX_BUFFER){
-                    maxLength = current;
-                    return false;
-                }
+                if(current >= MAX_BUFFER) break;
                 buffer[current++] = (short) in.read();
             } while (buffer[current - 1] != targetChar);
-            maxLength = current;
         } catch (IOException ex) {
             System.out.println("Erro na classe ShortArrayInputStream, método Reload(). Message: " + ex.getMessage());
             ex.printStackTrace();
         }
 
-        return true;
+        return maxLength = current;
     }
 
     private byte fillBuffer(){

@@ -2,6 +2,7 @@ package net.servboot.request;
 
 import net.servboot.utils.url.StringUrlUtils;
 
+import java.io.File;
 import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -10,6 +11,7 @@ public class Request {
     private final Map<String, String> parameters = new LinkedHashMap<>();
     private final Map<String, String> headers = new LinkedHashMap<>();
     private final Map<String, String> cookies = new LinkedHashMap<>();
+    private final Map<String, File> files = new LinkedHashMap<>();
     private Class<?> clazz;
     private Method method;
     private String stringMethod;
@@ -143,6 +145,18 @@ public class Request {
 
     public String getContentType() {
         return contentType;
+    }
+
+    public void addFile(String name, File file){
+        files.put(name, file);
+    }
+
+    public Map<String, File> getFiles() {
+        return files;
+    }
+
+    public File getFile(String name){
+        return files.get(name);
     }
 
     public void setContentLength(String contentLength) {
