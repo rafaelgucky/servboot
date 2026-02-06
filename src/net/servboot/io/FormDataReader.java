@@ -31,17 +31,24 @@ public class FormDataReader {
         totalReady += shortArray.reload((short) 10);
 
         try{
+            String fileName = "";
             while (totalReady < length) {
                 String line = readLine();
-                if (!line.contains(boundary)) {
+                if (!line.isEmpty() && !line.contains(boundary)) {
                     List<Integer> bytes;
-                    if (line.contains("Content-Type")) {
+                    if(line.contains("filename=\"")){
+                        fileName = getKey(line);
+                    } else if (line.contains("Content-Type")) {
                         String temp = line.split(":")[1].trim();
                         String contentType = temp.substring(temp.indexOf("/") + 1);
                         File file = readBytes(contentType);
-                        formData.put("file", file);
-                    } else if (!line.isEmpty() && !line.equals("--") && !line.contains("filename=\"")) {
-                        String key = line.substring(line.indexOf("\"") + 1, line.indexOf("\"", line.indexOf("\"") + 1));
+                        if(formData.containsKey(fileName)){
+                            ((List<File>) formData.get(fileName)).add(file);
+                        } else{
+                            formData.put(fileName, new LinkedList<>(List.of(file)));
+                        }
+                    } else if (!line.equals("--")) {
+                        String key = getKey(line);
                         readLine();
                         String value = readLine();
                         formData.put(key, value);
@@ -66,7 +73,7 @@ public class FormDataReader {
                     shortArray.reload((short) 10);
                     readed = reader.read(tempBuffer);
                 }
-                if(readed > 127) System.out.println("MAIOR");
+
                 totalReady += readed > 127 ? 2 : 1;
                 line += tempBuffer[0];
             } while(tempBuffer[0] != 10 && (totalReady + tempBuffer.length) <= length);
@@ -143,6 +150,10 @@ public class FormDataReader {
             result += (char) b;
         }
         return result;
+    }
+
+    private String getKey(String line){
+        return line.substring(line.indexOf("\"") + 1, line.indexOf("\"", line.indexOf("\"") + 1));
     }
 
 }

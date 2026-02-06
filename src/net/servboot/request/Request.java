@@ -5,13 +5,14 @@ import net.servboot.utils.url.StringUrlUtils;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Request {
     private final Map<String, String> parameters = new LinkedHashMap<>();
     private final Map<String, String> headers = new LinkedHashMap<>();
     private final Map<String, String> cookies = new LinkedHashMap<>();
-    private final Map<String, File> files = new LinkedHashMap<>();
+    private final Map<String, List<File>> files = new LinkedHashMap<>();
     private Class<?> clazz;
     private Method method;
     private String stringMethod;
@@ -45,8 +46,8 @@ public class Request {
         if(pairs[0].contains("Content-Length")){
             contentLength = Integer.parseInt(pairs[1]);
         } else if(pairs[0].contains("Content-Type")){
+            this.contentType = pairs[1].substring(0, pairs[1].contains(";") ? pairs[1].indexOf(";") : pairs[1].length()).trim();
             if(pairs[1].contains("multipart/form-data")){
-                this.contentType = pairs[1].substring(0, pairs[1].contains(";") ? pairs[1].indexOf(";") : pairs[1].length()).trim();
                 String boundary = pairs[1].substring(pairs[1].indexOf("=") + 1);
                 pairs[0] = "boundary";
                 pairs[1] = boundary;
@@ -147,15 +148,15 @@ public class Request {
         return contentType;
     }
 
-    public void addFile(String name, File file){
+    public void addFile(String name, List<File> file){
         files.put(name, file);
     }
 
-    public Map<String, File> getFiles() {
+    public Map<String, List<File>> getFiles() {
         return files;
     }
 
-    public File getFile(String name){
+    public List<File> getFile(String name){
         return files.get(name);
     }
 

@@ -4,7 +4,6 @@ import net.servboot.annotations.GET;
 import net.servboot.controllers.ControllerBase;
 import net.servboot.request.Request;
 import net.servboot.utils.json.Json;
-
 import java.io.File;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -43,11 +42,14 @@ public class ReflectionUtils {
             return (T) Float.valueOf(value.toString());
         }  else if(clazz.equals(double.class) || clazz.equals(Double.class)){
             return (T) Double.valueOf(value.toString());
-        } else if(clazz.equals(String.class)){
-            return (T) value;
-        } else if(clazz.equals(File.class)){
-            return (T) value;
         }
+//        else if(clazz.equals(String.class)){
+//            return (T) value;
+//        } else if(clazz.equals(File.class)){
+//            return (T) value;
+//        } else if(clazz.equals(List.class) && value.getClass().getComponentType().equals(File.class)){
+//
+//        }
         else {
             return (T) value;
         }
@@ -60,11 +62,16 @@ public class ReflectionUtils {
         relation = new LinkedHashMap<>();
 
         for(Parameter parameter :  parameters){
-            File file;
+            List<File> files;
             if(request.getParameters().containsKey(parameter.getName())){
                 relation.put(request.getParameters().get(parameter.getName()), parameter);
-            } else if((file = request.getFile(parameter.getName().toLowerCase())) != null){
-                relation.put(file, parameter);
+            } else if((files = request.getFile(parameter.getName().toLowerCase())) != null) {
+                if(parameter.getType().equals(File.class)){
+                    relation.put(files.getFirst(), parameter);
+                } else {
+                    relation.put(files, parameter);
+                }
+
             }
             else {
                 if(Arrays.stream(request.getMethod().getAnnotations()).anyMatch(a -> a.annotationType().equals(GET.class))) throw new RuntimeException("JSON não permitido para métodos GET");

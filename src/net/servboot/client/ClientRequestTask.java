@@ -15,13 +15,16 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public final class ClientRequestTask extends Thread {
     public ServerSocket server;
     public Socket client;
+    Request request;
     private final List<Thread> threads;
     private final List<ControllerBase> controllers;
     private static final String currentPath = System.getProperty("user.dir");
@@ -46,20 +49,20 @@ public final class ClientRequestTask extends Thread {
             InputStream in =  client.getInputStream();
             ShortArrayInputStream shortArray = new ShortArrayInputStream(in);
             InputStreamReader isr = new InputStreamReader(shortArray, StandardCharsets.UTF_8);
-            RequestBufferedReader rbr = new RequestBufferedReader(isr);
+            RequestBufferedReader rbr = new RequestBufferedReader(shortArray, isr);
             RequestMapper requestMapper = new RequestMapper();
 
-            String url = rbr.readHeaderLine();
+            String url = rbr.readLine();
             if(url.isEmpty()){
                 isFavicon = true;
                 return;
             }
-            Request request = requestMapper.map(url);
+            request = requestMapper.map(url);
 
             System.out.println(url);
 
             String line;
-            while (!(line = rbr.readHeaderLine()).isEmpty()) {
+            while (!(line = rbr.readLine()).isEmpty()) {
                 System.out.println(line);
                 request.addHeader(line);
 
@@ -78,22 +81,16 @@ public final class ClientRequestTask extends Thread {
                         FormDataReader fdr = new FormDataReader(in, isr, shortArray, request.getHeader("boundary"), request.getContentLength());
                         Map<String, Object> formData = fdr.readFormData();
                         for(Map.Entry<String, Object> entry : formData.entrySet()){
-                            if(entry.getValue() instanceof File file){
-                                request.addFile(entry.getKey(), file);
-                            } else{
+                            if(entry.getValue() instanceof List files){
+                                request.addFile(entry.getKey(), files);
+                            } else {
                                 request.addParameter(entry.getKey(), entry.getValue().toString());
                             }
-                            System.out.println(entry.getKey() + ": " + entry.getValue());
                         }
-                        //request.setStringBody(rbr.readBody(request.getContentLength()));
                         break;
-                    } else if(request.getContentType().contains("jpeg")
-                                || request.getContentType().contains("jpg")
-                                ||  request.getContentType().contains("png")
-                                ||  request.getContentType().contains("pdf")
-                                ||  request.getContentType().contains("text/plain"))
-                    {
-
+                    } else if (request.getContentType().contains("json")) {
+                        request.setStringBody(rbr.readBody(request.getContentLength()));
+                        System.out.println(request.getStringBody());
                         break;
                     }
                 }
@@ -128,8 +125,6 @@ public final class ClientRequestTask extends Thread {
                 return;
             }
 
-            //System.out.println(request.getStringBody());
-
             // Chamar o controller
             ControllerBase controller = requestMapper.invoke(controllers);
             if(controller != null && controllers.stream().noneMatch(c -> c.getClass().equals(controller.getClass()))) {
@@ -148,10 +143,26 @@ public final class ClientRequestTask extends Thread {
                     out.write(HeaderBuilder.build(Headers.TEXT_HTML, body.length()));
                     out.write(is.readAllBytes());
                     out.flush();
-                    //out.close();
+                    out.close();
                 } catch (IOException ex) {
                     System.out.println("Erro ao fechar a stream de saída: " + ex.getMessage());
                     ex.printStackTrace();
+                }
+
+                System.out.println("RESPOSTA ENVIADA AO CLIENTE. INICIANDO DELEÇÃO DE ARVQUIVOS TEMPORÁRIOS");
+                try{
+                    Set<String> keys = request.getFiles().keySet();
+                    for(String key : keys) {
+                        for(File file : request.getFiles().get(key)) {
+                            Files.deleteIfExists(file.toPath());
+                            Thread.yield();
+                        }
+                    }
+                } catch (IOException ex) {
+                    System.out.println("Erro ao deletar arquivos temporários de upload: " + ex.getMessage());
+                    ex.printStackTrace();
+                } finally {
+                    System.out.println("ARQUIVOS TEMPORÁRIO DELETADOS!");
                 }
             }
 
