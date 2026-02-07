@@ -16,11 +16,19 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 public final class RequestMapper {
+    private AnnotationResearcher anr;
     private final List<Object> paramsToInvoke = new LinkedList<>();
-    AnnotationResearcher anr = new AnnotationResearcher();
+    private List<?> requestContainerDI;
+    private List<Object> applicationContainerDI;
     private static final String currentPath = System.getProperty("user.dir");
     private static final String appMapping = "\\src\\mapping.json";
     private Request request;
+
+    public RequestMapper(Thread currentThread, List<Object> applicationContainerDI, List<?> requestContainerDI) {
+        anr = new AnnotationResearcher(currentThread);
+        this.requestContainerDI = requestContainerDI;
+        this.applicationContainerDI = applicationContainerDI;
+    }
 
     public Request map(String url){
         String method;
@@ -60,7 +68,7 @@ public final class RequestMapper {
         try {
             classes = anr.getClasses();
             if(classes == null || classes.isEmpty()){
-                classes = AnnotationResearcher.findClazz();
+                classes = anr.findClazz();
             }
             // Define a classe e o metodo da requisição
             if(setClazzMethod(classes)){
@@ -73,7 +81,7 @@ public final class RequestMapper {
                 }
             }
 
-            controller = ReflectionUtils.invoke(request, paramsToInvoke, controllers);
+            controller = ReflectionUtils.invoke(request, paramsToInvoke, controllers, requestContainerDI, applicationContainerDI);
         } catch (Exception ex) {
             System.out.println("Erro na classe RequestMapper, invoke(). Message: " + ex.getMessage());
             ex.printStackTrace();

@@ -5,15 +5,19 @@ import java.io.File;
 import java.util.*;
 
 public final class AnnotationResearcher {
-    private static final ClassLoader cl = Thread.currentThread().getContextClassLoader();
+    private final ClassLoader cl;
     private static List<Class<?>> classes = null;
     private static String projectName = "";
+
+    public AnnotationResearcher(Thread mainThread) {
+        this.cl = mainThread.getContextClassLoader();
+    }
 
     public List<Class<?>> getClasses() {
         return classes;
     }
 
-    public static synchronized List<Class<?>> findClazz(){
+    public synchronized List<Class<?>> findClazz(){
         try{
             String basePath = Collections.list(cl.getResources("")).getFirst().getPath();
 
@@ -53,7 +57,7 @@ public final class AnnotationResearcher {
         return null;
     }
 
-    private static synchronized List<Class<?>> findClazz(File file){
+    private synchronized List<Class<?>> findClazz(File file){
         List<Class<?>> classes = new LinkedList<>();
         try{
             if (!file.exists()) return null;

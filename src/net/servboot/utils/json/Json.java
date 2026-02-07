@@ -236,8 +236,8 @@ public class Json {
 
             // Busca pelo valor total da propriedade (int, bool, array, object, string)
             count++;
+
             while (++count < json.length() && ((skipQuotes > 0 && json.charAt(count) != ',') || skipBrackets > 0 || skipKeys > 0)) {
-                value.append(json.charAt(count));
                 if (json.charAt(count) == '[') {
                     skipBrackets++;
                     skipQuotes = 0;
@@ -247,10 +247,16 @@ public class Json {
                 } else if (json.charAt(count) == ']') {
                     skipBrackets--;
                 } else if (json.charAt(count) == '}') {
+                    if(count == json.length() - 1){
+                        count++;
+                        break;
+                    }
                     skipKeys--;
                 } else if(json.charAt(count) == '\"') {
                     skipQuotes--;
                 }
+
+                value.append(json.charAt(count));
             }
             if(!key.toString().trim().isEmpty()){
                 temp.put(key.toString().trim(), value.toString().trim());
@@ -411,7 +417,7 @@ public class Json {
                 do{
                     sb.append(json.charAt(++i));
                 } while(json.charAt(i) != '\"');
-            } else if(json.charAt(i) != ' ' && json.charAt(i) != '\n'){
+            } else if(json.charAt(i) != ' ' && json.charAt(i) != '\n' && json.charAt(i) != '\r'){
                 sb.append(json.charAt(i));
             }
         }

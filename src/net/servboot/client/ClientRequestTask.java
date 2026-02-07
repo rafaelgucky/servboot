@@ -25,18 +25,28 @@ public final class ClientRequestTask extends Thread {
     public ServerSocket server;
     public Socket client;
     Request request;
+    private Thread currentThread;
     private final List<Thread> threads;
     private final List<ControllerBase> controllers;
+    private List<?> requestContainerDI;
+    private List<Object> applicationContainerDI;
     private static final String currentPath = System.getProperty("user.dir");
     private static final String faviconPath = "\\src\\net\\servboot\\static\\favicon.ico";
     private static final String homePath = "\\src\\net\\servboot\\static\\home.html";
     private static final String catPath = "\\src\\net\\servboot\\static\\images\\gato.jpg";
 
-    public ClientRequestTask(ServerSocket server, Socket client, List<Thread> threads, List<ControllerBase> controllers) {
+    public ClientRequestTask(ServerSocket server, Socket client,
+                             Thread currentThread, List<Thread> threads,
+                             List<ControllerBase> controllers,
+                             List<?> requestContainerDI,
+                             List<Object> applicationContainerDI) {
         this.server = server;
         this.client = client;
+        this.currentThread = currentThread;
         this.threads = threads;
         this.controllers = controllers;
+        this.requestContainerDI = requestContainerDI;
+        this.applicationContainerDI = applicationContainerDI;
     }
 
     @Override
@@ -50,7 +60,7 @@ public final class ClientRequestTask extends Thread {
             ShortArrayInputStream shortArray = new ShortArrayInputStream(in);
             InputStreamReader isr = new InputStreamReader(shortArray, StandardCharsets.UTF_8);
             RequestBufferedReader rbr = new RequestBufferedReader(shortArray, isr);
-            RequestMapper requestMapper = new RequestMapper();
+            RequestMapper requestMapper = new RequestMapper(this.currentThread, this.applicationContainerDI,  this.requestContainerDI);
 
             String url = rbr.readLine();
             if(url.isEmpty()){

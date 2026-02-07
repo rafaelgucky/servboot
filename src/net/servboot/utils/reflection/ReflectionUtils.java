@@ -6,8 +6,10 @@ import net.servboot.request.Request;
 import net.servboot.utils.json.Json;
 import java.io.File;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.security.InvalidParameterException;
 import java.util.*;
 
 public class ReflectionUtils {
@@ -40,17 +42,9 @@ public class ReflectionUtils {
             return (T) Long.valueOf(value.toString());
         }  else if(clazz.equals(float.class) || clazz.equals(Float.class)){
             return (T) Float.valueOf(value.toString());
-        }  else if(clazz.equals(double.class) || clazz.equals(Double.class)){
+        }  else if(clazz.equals(double.class) || clazz.equals(Double.class)) {
             return (T) Double.valueOf(value.toString());
-        }
-//        else if(clazz.equals(String.class)){
-//            return (T) value;
-//        } else if(clazz.equals(File.class)){
-//            return (T) value;
-//        } else if(clazz.equals(List.class) && value.getClass().getComponentType().equals(File.class)){
-//
-//        }
-        else {
+        } else {
             return (T) value;
         }
     }
@@ -87,7 +81,7 @@ public class ReflectionUtils {
         return relation;
     }
 
-    public static ControllerBase invoke(Request request, List<Object> params, List<ControllerBase> controllers){
+    public static ControllerBase invoke(Request request, List<Object> params, List<ControllerBase> controllers, List<?> requestsContainerDI, List<?> applicationContainerDi){
         ControllerBase controller = null;
 
         if(request.getClazz() == null || request.getMethod() == null) throw new RuntimeException("No class or method found");
@@ -96,7 +90,33 @@ public class ReflectionUtils {
             if(!controllers.isEmpty() && controllers.stream().anyMatch(c -> c.getClass().equals(request.getClazz()))){
                 controller = controllers.stream().filter(c -> c.getClass().equals(request.getClazz())).findFirst().get();
             } else {
-                controller = (ControllerBase) request.getClazz().getDeclaredConstructor().newInstance();
+
+                // Dependency Injection
+
+                Constructor<?>[] constructors = request.getClazz().getDeclaredConstructors();
+
+                if(constructors.length > 1){
+                    throw new InvalidParameterException("Only one constructor allowed for dependency injection");
+                }
+
+                for(Constructor<?> constructor : constructors){
+                    Parameter[] controllerParameters = constructor.getParameters();
+                    List<Object> parameters = new LinkedList<>();
+
+                    for(Parameter parameter : controllerParameters){
+                        parameters.add(applicationContainerDi.stream().filter(c -> c.getClass().equals(parameter.getType())).findFirst().get());
+                    }
+
+                    switch (parameters.size()) {
+                        case 0:
+                            controller = (ControllerBase) request.getClazz().getDeclaredConstructor().newInstance();
+                            break;
+                        case 1:
+                            controller = (ControllerBase) request.getClazz().getDeclaredConstructor(parameters.getFirst().getClass()).newInstance(parameters.getFirst());
+                            break;
+                    }
+                }
+
             }
             request.getMethod().setAccessible(true);
             controller.setRequest(request);

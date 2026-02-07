@@ -16,17 +16,16 @@ public class RequestBufferedReader {
     public String readBody(long bytes) throws Exception {
         char[] character = new char[1];
         String body = "";
-        long readed;
 
         isr.read(character);
 
         while(totalReady <= bytes) {
-            if((readed = isr.read(character)) == -1){
+            if(isr.read(character) == -1){
                 shortArray.reload((short) 125);
-                readed = isr.read(character);
+                isr.read(character);
             }
 
-            totalReady += readed > 127 ? 2 : 1;
+            totalReady += character[0] > 127 ? 2 : 1;
             body += character[0];
         }
 
