@@ -3,6 +3,7 @@ package net.servboot.request;
 import net.servboot.utils.url.StringUrlUtils;
 
 import java.io.File;
+import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -13,6 +14,7 @@ public class Request {
     private final Map<String, String> headers = new LinkedHashMap<>();
     private final Map<String, String> cookies = new LinkedHashMap<>();
     private final Map<String, List<File>> files = new LinkedHashMap<>();
+    private OutputStream clientOutputStream;
     private Class<?> clazz;
     private Method method;
     private String stringMethod;
@@ -24,6 +26,14 @@ public class Request {
     public Request(String method, String url) {
         this.stringMethod = method.trim();
         this.url = StringUrlUtils.format(url.trim());
+    }
+
+    public void setClientOutputStream(OutputStream clientOutputStream) {
+        this.clientOutputStream = clientOutputStream;
+    }
+
+    public OutputStream getClientOutputStream() {
+        return clientOutputStream;
     }
 
     public void addParameter(String key, String value){

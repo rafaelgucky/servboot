@@ -81,7 +81,7 @@ public class ReflectionUtils {
         return relation;
     }
 
-    public static ControllerBase invoke(Request request, List<Object> params, List<ControllerBase> controllers, List<?> requestsContainerDI, List<?> applicationContainerDi){
+    public static ControllerBase invoke(Request request, List<Object> params, List<ControllerBase> controllers, List<Class<?>> requestsContainerDI, List<Object> applicationContainerDi){
         ControllerBase controller = null;
 
         if(request.getClazz() == null || request.getMethod() == null) throw new RuntimeException("No class or method found");
@@ -93,7 +93,7 @@ public class ReflectionUtils {
 
                 // Dependency Injection
 
-                Constructor<?>[] constructors = request.getClazz().getDeclaredConstructors();
+                Constructor<?>[] constructors = request.getClazz().getConstructors();
 
                 if(constructors.length > 1){
                     throw new InvalidParameterException("Only one constructor allowed for dependency injection");
@@ -101,25 +101,46 @@ public class ReflectionUtils {
 
                 for(Constructor<?> constructor : constructors){
                     Parameter[] controllerParameters = constructor.getParameters();
-                    List<Object> parameters = new LinkedList<>();
+                    Object[] parameters = new Object[controllerParameters.length];
 
-                    for(Parameter parameter : controllerParameters){
-                        parameters.add(applicationContainerDi.stream().filter(c -> c.getClass().equals(parameter.getType())).findFirst().get());
+                    for(int i = 0; i < controllerParameters.length; i++) {
+                        final int pos = i;
+                        if(applicationContainerDi.stream().anyMatch(ac -> ac.getClass().equals(controllerParameters[pos].getType()))){
+                            parameters[i] = applicationContainerDi.stream().filter(ac -> ac.getClass().equals(controllerParameters[pos].getType())).findFirst().get();
+                        } else if (requestsContainerDI.stream().anyMatch(rq -> rq.equals(controllerParameters[pos].getType()))){
+                            parameters[i] = instantiate(requestsContainerDI.stream().filter(rq -> rq.equals(controllerParameters[pos].getType())).findFirst().get());
+                        } else {
+                            throw new RuntimeException("Error: " + parameters.length + " parameters expected!");
+                        }
                     }
 
-                    switch (parameters.size()) {
-                        case 0:
-                            controller = (ControllerBase) request.getClazz().getDeclaredConstructor().newInstance();
-                            break;
-                        case 1:
-                            controller = (ControllerBase) request.getClazz().getDeclaredConstructor(parameters.getFirst().getClass()).newInstance(parameters.getFirst());
-                            break;
-                    }
+                    controller = switch (parameters.length) {
+                        case 0 -> (ControllerBase) request.getClazz().getDeclaredConstructor().newInstance();
+                        case 1 -> (ControllerBase) request.getClazz()
+                                .getDeclaredConstructor(parameters[0].getClass())
+                                .newInstance(parameters[0]);
+                        case 2 -> (ControllerBase) request.getClazz()
+                                .getDeclaredConstructor(parameters[0].getClass(), parameters[1].getClass())
+                                .newInstance(parameters[0], parameters[1]);
+                        case 3 -> (ControllerBase) request.getClazz()
+                                .getDeclaredConstructor(parameters[0].getClass(), parameters[1].getClass(),  parameters[2].getClass())
+                                .newInstance(parameters[0], parameters[1], parameters[2]);
+                        case 4 -> (ControllerBase) request.getClazz()
+                                .getDeclaredConstructor(parameters[0].getClass(), parameters[1].getClass(), parameters[2].getClass(), parameters[3].getClass())
+                                .newInstance(parameters[0], parameters[1], parameters[2], parameters[3]);
+                        case 5 -> (ControllerBase) request.getClazz()
+                                .getDeclaredConstructor(parameters[0].getClass(), parameters[1].getClass(), parameters[2].getClass(), parameters[3].getClass(), parameters[4].getClass())
+                                .newInstance(parameters[0], parameters[1], parameters[2], parameters[3], parameters[4]);
+                        case 6 -> (ControllerBase) request.getClazz()
+                                .getDeclaredConstructor(parameters[0].getClass(), parameters[1].getClass(), parameters[2].getClass(), parameters[3].getClass(), parameters[4].getClass(), parameters[5].getClass())
+                                .newInstance(parameters[0], parameters[1], parameters[2], parameters[3], parameters[4], parameters[5]);
+                        default -> controller;
+                    };
                 }
 
             }
             request.getMethod().setAccessible(true);
-            controller.setRequest(request);
+            controller.Request = request;
 
             switch (params.size()) {
                 case 0:
@@ -163,6 +184,145 @@ public class ReflectionUtils {
             ex.printStackTrace();
         }
         return controller;
+    }
+
+    public static Object instantiate(Class<?> clazz){
+        Object result = null;
+
+        try{
+            List<Object> parameters = new LinkedList<>();
+            Constructor<?>[] constructors = clazz.getConstructors();
+            if(constructors.length > 1){ throw new RuntimeException("Only one constructor allowed for dependency injection"); }
+            Parameter[] controllerParameters = constructors[0].getParameters();
+
+            for(Parameter p : controllerParameters){
+                Parameter[] subParameters = p.getType().getDeclaredConstructor().getParameters();
+                if(subParameters.length > 0) {
+                    parameters.add(instantiate(p.getType()));
+                } else {
+                    parameters.add(p.getType().getDeclaredConstructor().newInstance());
+                }
+            }
+
+            result = switch (parameters.size()){
+                case 0 -> clazz.getDeclaredConstructor().newInstance();
+                case 1 -> clazz.getDeclaredConstructor(controllerParameters[0].getType())
+                        .newInstance(parameters.getFirst());
+                case 2 -> clazz.getDeclaredConstructor(controllerParameters[0].getType(), controllerParameters[1].getType())
+                        .newInstance(parameters.getFirst(), parameters.get(1));
+                case 3 -> clazz.getDeclaredConstructor(controllerParameters[0].getType(), controllerParameters[1].getType(), controllerParameters[2].getType())
+                        .newInstance(parameters.getFirst(), parameters.get(1), parameters.get(2));
+                case 4 -> clazz.getDeclaredConstructor(
+                                controllerParameters[0].getType(),
+                                controllerParameters[1].getType(),
+                                controllerParameters[2].getType(),
+                                controllerParameters[3].getType())
+                        .newInstance(parameters.getFirst(),
+                                    parameters.get(1),
+                                    parameters.get(2),
+                                    parameters.get(3));
+                case 5 -> clazz.getDeclaredConstructor(
+                                controllerParameters[0].getType(),
+                                controllerParameters[1].getType(),
+                                controllerParameters[2].getType(),
+                                controllerParameters[3].getType(),
+                                controllerParameters[4].getType())
+                        .newInstance(parameters.getFirst(),
+                                parameters.get(1),
+                                parameters.get(2),
+                                parameters.get(3),
+                                parameters.get(4));
+                case 6 -> clazz.getDeclaredConstructor(
+                                controllerParameters[0].getType(),
+                                controllerParameters[1].getType(),
+                                controllerParameters[2].getType(),
+                                controllerParameters[3].getType(),
+                                controllerParameters[4].getType(),
+                                controllerParameters[5].getType())
+                        .newInstance(parameters.getFirst(),
+                                parameters.get(1),
+                                parameters.get(2),
+                                parameters.get(3),
+                                parameters.get(4),
+                                parameters.get(5));
+                case 7 -> clazz.getDeclaredConstructor(
+                                controllerParameters[0].getType(),
+                                controllerParameters[1].getType(),
+                                controllerParameters[2].getType(),
+                                controllerParameters[3].getType(),
+                                controllerParameters[4].getType(),
+                                controllerParameters[5].getType(),
+                                controllerParameters[6].getType())
+                        .newInstance(parameters.getFirst(),
+                                parameters.get(1),
+                                parameters.get(2),
+                                parameters.get(3),
+                                parameters.get(4),
+                                parameters.get(5),
+                                parameters.get(6));
+                case 8 -> clazz.getDeclaredConstructor(
+                                controllerParameters[0].getType(),
+                                controllerParameters[1].getType(),
+                                controllerParameters[2].getType(),
+                                controllerParameters[3].getType(),
+                                controllerParameters[4].getType(),
+                                controllerParameters[5].getType(),
+                                controllerParameters[6].getType(),
+                                controllerParameters[7].getType())
+                        .newInstance(parameters.getFirst(),
+                                parameters.get(1),
+                                parameters.get(2),
+                                parameters.get(3),
+                                parameters.get(4),
+                                parameters.get(5),
+                                parameters.get(6),
+                                parameters.get(7));
+                case 9 -> clazz.getDeclaredConstructor(
+                                controllerParameters[0].getType(),
+                                controllerParameters[1].getType(),
+                                controllerParameters[2].getType(),
+                                controllerParameters[3].getType(),
+                                controllerParameters[4].getType(),
+                                controllerParameters[5].getType(),
+                                controllerParameters[6].getType(),
+                                controllerParameters[7].getType(),
+                                controllerParameters[8].getType())
+                        .newInstance(parameters.getFirst(),
+                                parameters.get(1),
+                                parameters.get(2),
+                                parameters.get(3),
+                                parameters.get(4),
+                                parameters.get(5),
+                                parameters.get(6),
+                                parameters.get(7),
+                                parameters.get(8));
+                case 10 -> clazz.getDeclaredConstructor(
+                                controllerParameters[0].getType(),
+                                controllerParameters[1].getType(),
+                                controllerParameters[2].getType(),
+                                controllerParameters[3].getType(),
+                                controllerParameters[4].getType(),
+                                controllerParameters[5].getType(),
+                                controllerParameters[6].getType(),
+                                controllerParameters[7].getType(),
+                                controllerParameters[8].getType(),
+                                controllerParameters[9].getType())
+                        .newInstance(parameters.getFirst(),
+                                parameters.get(1),
+                                parameters.get(2),
+                                parameters.get(3),
+                                parameters.get(4),
+                                parameters.get(5),
+                                parameters.get(6),
+                                parameters.get(7),
+                                parameters.get(8),
+                                parameters.get(9));
+                default -> null;
+            };
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+        return result;
     }
 
     public static boolean isPrimitive(Class<?> clazz) {

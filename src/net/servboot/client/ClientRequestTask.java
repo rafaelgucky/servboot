@@ -8,15 +8,11 @@ import net.servboot.io.RequestBufferedReader;
 import net.servboot.io.ShortArrayInputStream;
 import net.servboot.request.Request;
 import net.servboot.request.RequestMapper;
-import net.servboot.utils.inputstream.ByteArrayInputStreamUtils;
-import net.servboot.utils.inputstream.InputStreamUtils;
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,7 +24,7 @@ public final class ClientRequestTask extends Thread {
     private Thread currentThread;
     private final List<Thread> threads;
     private final List<ControllerBase> controllers;
-    private List<?> requestContainerDI;
+    private List<Class<?>> requestContainerDI;
     private List<Object> applicationContainerDI;
     private static final String currentPath = System.getProperty("user.dir");
     private static final String faviconPath = "\\src\\net\\servboot\\static\\favicon.ico";
@@ -38,7 +34,7 @@ public final class ClientRequestTask extends Thread {
     public ClientRequestTask(ServerSocket server, Socket client,
                              Thread currentThread, List<Thread> threads,
                              List<ControllerBase> controllers,
-                             List<?> requestContainerDI,
+                             List<Class<?>> requestContainerDI,
                              List<Object> applicationContainerDI) {
         this.server = server;
         this.client = client;
@@ -51,11 +47,11 @@ public final class ClientRequestTask extends Thread {
 
     @Override
     public void run() {
-        OutputStream out = null;
+        //OutputStream out = null;
         boolean isFavicon = false;
 
         try {
-            out = client.getOutputStream();
+            //out = client.getOutputStream();
             InputStream in =  client.getInputStream();
             ShortArrayInputStream shortArray = new ShortArrayInputStream(in);
             InputStreamReader isr = new InputStreamReader(shortArray, StandardCharsets.UTF_8);
@@ -64,10 +60,10 @@ public final class ClientRequestTask extends Thread {
 
             String url = rbr.readLine();
             if(url.isEmpty()){
-                isFavicon = true;
                 return;
             }
             request = requestMapper.map(url);
+            request.setClientOutputStream(client.getOutputStream());
 
             System.out.println(url);
 
@@ -109,28 +105,31 @@ public final class ClientRequestTask extends Thread {
 
                 // TEMPORÁRIO
                 else if(request.getUrl().contains("favicon.ico")){
-                    File favicon = new File(currentPath + faviconPath);
                     isFavicon = true;
 
+                    /*File favicon = new File(currentPath + faviconPath);
                     System.out.println("GET FAVICON");
                     out.write(HeaderBuilder.build(Headers.IMAGE_ICON, favicon.length(), favicon.getName()));
                     FileInputStream fis = new FileInputStream(favicon);
 
                     out.write(fis.readAllBytes());
+                    out.flush();*/
                     break;
                 } else if(request.getUrl().contains("gato.jpg")){
-                    File catFile = new File(currentPath + catPath);
                     isFavicon = true;
 
+                    /*File catFile = new File(currentPath + catPath);
                     System.out.println("GET CAT");
                     out.write(HeaderBuilder.build(Headers.IMAGE_JPG, catFile.length(), catFile.getName()));
                     FileInputStream fis = new FileInputStream(catFile);
 
                     out.write(fis.readAllBytes());
+                    out.flush();*/
                     break;
                 }
             }
 
+            // Não chamar controller
             if(isFavicon) {
                 return;
             }
@@ -145,7 +144,27 @@ public final class ClientRequestTask extends Thread {
             System.out.println(ex.getMessage());
             ex.printStackTrace();
         } finally {
-            if(!isFavicon && out != null){
+
+            try{
+                client.getOutputStream().close();
+            } catch (IOException ex) {
+
+            }
+
+            try{
+                Set<String> keys = request.getFiles().keySet();
+                for(String key : keys) {
+                    for(File file : request.getFiles().get(key)) {
+                        Files.deleteIfExists(file.toPath());
+                        Thread.yield();
+                    }
+                }
+            } catch (IOException ex) {
+                System.out.println("Erro ao deletar arquivos temporários de upload: " + ex.getMessage());
+                ex.printStackTrace();
+            }
+
+            /*if(!isFavicon && out != null){
                 try{
                     File body = new File(currentPath + homePath);
                     InputStream is = new FileInputStream(body);
@@ -158,23 +177,7 @@ public final class ClientRequestTask extends Thread {
                     System.out.println("Erro ao fechar a stream de saída: " + ex.getMessage());
                     ex.printStackTrace();
                 }
-
-                System.out.println("RESPOSTA ENVIADA AO CLIENTE. INICIANDO DELEÇÃO DE ARVQUIVOS TEMPORÁRIOS");
-                try{
-                    Set<String> keys = request.getFiles().keySet();
-                    for(String key : keys) {
-                        for(File file : request.getFiles().get(key)) {
-                            Files.deleteIfExists(file.toPath());
-                            Thread.yield();
-                        }
-                    }
-                } catch (IOException ex) {
-                    System.out.println("Erro ao deletar arquivos temporários de upload: " + ex.getMessage());
-                    ex.printStackTrace();
-                } finally {
-                    System.out.println("ARQUIVOS TEMPORÁRIO DELETADOS!");
-                }
-            }
+            }*/
 
             System.out.println("----- Fim da leitura dos dados do cliente -----");
             threads.remove(this);

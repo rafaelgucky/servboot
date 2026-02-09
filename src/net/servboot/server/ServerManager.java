@@ -2,6 +2,8 @@ package net.servboot.server;
 
 import net.servboot.client.ClientRequestTask;
 import net.servboot.controllers.ControllerBase;
+import net.servboot.utils.reflection.ReflectionUtils;
+
 import java.io.IOException;
 import java.lang.reflect.Parameter;
 import java.net.ServerSocket;
@@ -66,34 +68,6 @@ public final class ServerManager {
     }
 
     public void addApplicationScoped(Class<?> clazz){
-        instantiate(clazz);
-    }
-
-    private void instantiate(Class<?> clazz){
-        try{
-            List<Object> parameters = new LinkedList<>();
-            Parameter[] controllerParameters = clazz.getDeclaredConstructor().getParameters();
-
-            for(Parameter p : controllerParameters){
-                Parameter[] subParameters = p.getType().getDeclaredConstructor().getParameters();
-                if(subParameters.length > 0) {
-                    instantiate(p.getType());
-                } else {
-                    parameters.add(p.getType().getDeclaredConstructor().newInstance());
-                }
-            }
-
-            switch (parameters.size()){
-                case 0:
-                    aplicationContainerDI.add(clazz.getDeclaredConstructor().newInstance());
-                    break;
-                case 1:
-                    aplicationContainerDI.add(clazz.getDeclaredConstructor(controllerParameters[0].getType()).newInstance(parameters.getFirst()));
-                    break;
-            }
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
-        }
-
+        aplicationContainerDI.add(ReflectionUtils.instantiate(clazz));
     }
 }

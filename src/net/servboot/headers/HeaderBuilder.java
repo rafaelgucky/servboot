@@ -32,6 +32,15 @@ public final class HeaderBuilder {
                 break;
             case 1:
                 header.append("HTTP/1.1 200 OK\r\n");
+                header.append("Content-Type: application/json; charset=UTF-8\r\n");
+                header.append("Content-Length: ");
+                header.append(contentLength);
+                header.append("\r\n");
+                header.append("Connection: close\r\n");
+                header.append("\r\n");
+                break;
+            case 2:
+                header.append("HTTP/1.1 200 OK\r\n");
                 header.append("Content-Type: image/x-icon\r\n");
                 header.append("Content-Length: ");
                 header.append(contentLength);
@@ -66,6 +75,15 @@ public final class HeaderBuilder {
                 header.append("\"");
                 header.append(fileName);
                 header.append("\"\r\n");
+                header.append("Connection: close\r\n");
+                header.append("\r\n");
+                break;
+            case 6:
+                header.append("HTTP/1.1 200 OK\r\n");
+                header.append("Content-Type: text/plain; charset=UTF-8\r\n");
+                header.append("Content-Length: ");
+                header.append(contentLength);
+                header.append("\r\n");
                 header.append("Connection: close\r\n");
                 header.append("\r\n");
                 break;

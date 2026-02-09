@@ -18,13 +18,13 @@ import java.util.Map.Entry;
 public final class RequestMapper {
     private AnnotationResearcher anr;
     private final List<Object> paramsToInvoke = new LinkedList<>();
-    private List<?> requestContainerDI;
+    private List<Class<?>> requestContainerDI;
     private List<Object> applicationContainerDI;
     private static final String currentPath = System.getProperty("user.dir");
     private static final String appMapping = "\\src\\mapping.json";
     private Request request;
 
-    public RequestMapper(Thread currentThread, List<Object> applicationContainerDI, List<?> requestContainerDI) {
+    public RequestMapper(Thread currentThread, List<Object> applicationContainerDI, List<Class<?>> requestContainerDI) {
         anr = new AnnotationResearcher(currentThread);
         this.requestContainerDI = requestContainerDI;
         this.applicationContainerDI = applicationContainerDI;
