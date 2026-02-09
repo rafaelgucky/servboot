@@ -140,7 +140,7 @@ public class ReflectionUtils {
 
             }
             request.getMethod().setAccessible(true);
-            controller.Request = request;
+            controller.setRequest(request);
 
             switch (params.size()) {
                 case 0:

@@ -4,6 +4,7 @@ import net.servboot.annotations.Controller;
 import net.servboot.annotations.GET;
 import net.servboot.annotations.POST;
 import net.servboot.models.Person;
+import net.servboot.response.Response;
 import net.servboot.service.PersonService;
 
 @Controller("/api/person")
@@ -15,7 +16,7 @@ public class PersonController extends ControllerBase {
     }
 
     @POST("/{age}/{lastName}/{name}")
-    public void findAll(String name, int age, String lastName, String email, Person person) {
+    public Response findAll(String name, int age, String lastName, String email, Person person) {
         System.out.println("-------------------------- PERSON FIND ALL -----------------------");
         System.out.println("URL: " + Request.getUrl());
         System.out.println("NAME: " + name);
@@ -27,8 +28,8 @@ public class PersonController extends ControllerBase {
         System.out.println("INJECTED PERSON: " + personService.getPerson());
 //        System.out.println("FILE: " + pdf.size());
 //        System.out.println("IMAGES: " + imgs.size());
-        object(person);
         System.out.println("------------------------------------------------------------------");
+        return Response.badRequest().object(person);
     }
 
     @GET("/create")
