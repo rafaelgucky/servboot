@@ -81,7 +81,7 @@ public class ReflectionUtils {
         return relation;
     }
 
-    public static ControllerBase invoke(Request request, List<Object> params, List<ControllerBase> controllers, List<Class<?>> requestsContainerDI, List<Object> applicationContainerDi){
+    public static Object invoke(Request request, List<Object> params, List<ControllerBase> controllers, List<Class<?>> requestsContainerDI, List<Object> applicationContainerDi){
         ControllerBase controller = null;
 
         if(request.getClazz() == null || request.getMethod() == null) throw new RuntimeException("No class or method found");
@@ -137,48 +137,26 @@ public class ReflectionUtils {
                         default -> controller;
                     };
                 }
-
+                controllers.add(controller);
             }
+
             request.getMethod().setAccessible(true);
             controller.setRequest(request);
 
-            switch (params.size()) {
-                case 0:
-                    request.getMethod().invoke(controller);
-                    break;
-                case 1:
-                    request.getMethod().invoke(controller, params.getFirst());
-                    break;
-                case 2:
-                    request.getMethod().invoke(controller, params.getFirst(), params.get(1));
-                    break;
-                case 3:
-                    request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2));
-                    break;
-                case 4:
-                    request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3));
-                    break;
-                case 5:
-                    request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3), params.get(4));
-                    break;
-                case 6:
-                    request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3), params.get(4), params.get(5));
-                    break;
-                case 7:
-                    request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3), params.get(4), params.get(5), params.get(6));
-                    break;
-                case 8:
-                    request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3), params.get(4), params.get(5), params.get(6), params.get(7));
-                    break;
-                case 9:
-                    request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3), params.get(4), params.get(5), params.get(6), params.get(7), params.get(8));
-                    break;
-                case 10:
-                    request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3), params.get(4), params.get(5), params.get(6), params.get(7), params.get(8), params.get(9));
-                    break;
-                default:
-                    System.out.println("NECESSÁRIO ADICIONAR SUPORTE A MAIS PARÂMETROS");
-            }
+            return switch (params.size()) {
+                case 0 -> request.getMethod().invoke(controller);
+                case 1 -> request.getMethod().invoke(controller, params.getFirst());
+                case 2 -> request.getMethod().invoke(controller, params.getFirst(), params.get(1));
+                case 3 -> request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2));
+                case 4 -> request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3));
+                case 5 -> request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3), params.get(4));
+                case 6 -> request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3), params.get(4), params.get(5));
+                case 7 -> request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3), params.get(4), params.get(5), params.get(6));
+                case 8 -> request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3), params.get(4), params.get(5), params.get(6), params.get(7));
+                case 9 -> request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3), params.get(4), params.get(5), params.get(6), params.get(7), params.get(8));
+                case 10 -> request.getMethod().invoke(controller, params.getFirst(), params.get(1), params.get(2), params.get(3), params.get(4), params.get(5), params.get(6), params.get(7), params.get(8), params.get(9));
+                default -> null;
+            };
         } catch (Exception ex){
             System.out.println("Erro ao invocar método: " + ex.getMessage());
             ex.printStackTrace();

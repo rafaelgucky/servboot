@@ -7,6 +7,8 @@ import net.servboot.models.Person;
 import net.servboot.response.Response;
 import net.servboot.service.PersonService;
 
+import java.io.File;
+
 @Controller("/api/person")
 public class PersonController extends ControllerBase {
     private final PersonService personService;
@@ -29,14 +31,15 @@ public class PersonController extends ControllerBase {
 //        System.out.println("FILE: " + pdf.size());
 //        System.out.println("IMAGES: " + imgs.size());
         System.out.println("------------------------------------------------------------------");
-        return Response.badRequest().object(person);
+        //return ok(new File("temp/465020893_567022439150042_2248649684429010980_n.jpg"));
+        return notFound();
     }
 
     @GET("/create")
-    public void create(String name){
+    public Response create(String name){
         System.out.println("-------------------------- PERSON CREATE -------------------------");
         System.out.println("Name: " + name);
-        text("Name: " + name);
         System.out.println("------------------------------------------------------------------");
+        return ok(new File("temp/465020893_567022439150042_2248649684429010980_n.jpg"));
     }
 }

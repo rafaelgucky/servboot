@@ -15,12 +15,12 @@ public final class HeaderBuilder {
     }
 
     private static byte[] build(Headers headers, short responseCode, String fileName, long contentLength) {
-        byte[] headersFileTypes = {2, 3, 4, 5};
-        for (byte headersFileType : headersFileTypes) {
-            if (headersFileType == headers.getValue() && (fileName == null || fileName.isEmpty())) {
-                throw new RuntimeException("Headers file types don't match");
-            }
-        }
+//        byte[] headersFileTypes = {2, 3, 4, 5};
+//        for (byte headersFileType : headersFileTypes) {
+//            if (headersFileType == headers.getValue() && (fileName == null || fileName.isEmpty())) {
+//                throw new RuntimeException("Headers file types don't match");
+//            }
+//        }
 
         StringBuilder header = new StringBuilder();
         switch (headers.getValue()) {
@@ -102,6 +102,19 @@ public final class HeaderBuilder {
                 header.append("\r\n");
                 break;
             case 6:
+                header.append("HTTP/1.1 ");
+                header.append(responseCode);
+                header.append(" ");
+                header.append(FormatStringUtils.addSpaceOnUpperCase(StatusCode.getFromCode(responseCode).name()));
+                header.append("\r\n");
+                header.append("Content-Type: text/plain; charset=UTF-8\r\n");
+                header.append("Content-Length: ");
+                header.append(contentLength);
+                header.append("\r\n");
+                header.append("Connection: close\r\n");
+                header.append("\r\n");
+                break;
+            case 7:
                 header.append("HTTP/1.1 ");
                 header.append(responseCode);
                 header.append(" ");

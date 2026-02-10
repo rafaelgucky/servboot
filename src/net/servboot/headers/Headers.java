@@ -7,7 +7,8 @@ public enum Headers {
     IMAGE_PNG(3),
     IMAGE_JPG(4),
     IMAGE_JPEG(5),
-    TEXT_TXT(6);
+    TEXT_TXT(6),
+    TEXT_PLAIN(7);
 
     private final int value;
 

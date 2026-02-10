@@ -61,8 +61,7 @@ public final class RequestMapper {
         return request;
     }
 
-    public ControllerBase invoke(List<ControllerBase> controllers){
-        ControllerBase controller = null;
+    public Object invoke(List<ControllerBase> controllers){
         List<Class<?>> classes;
 
         try {
@@ -81,12 +80,12 @@ public final class RequestMapper {
                 }
             }
 
-            controller = ReflectionUtils.invoke(request, paramsToInvoke, controllers, requestContainerDI, applicationContainerDI);
+            return ReflectionUtils.invoke(request, paramsToInvoke, controllers, requestContainerDI, applicationContainerDI);
         } catch (Exception ex) {
             System.out.println("Erro na classe RequestMapper, invoke(). Message: " + ex.getMessage());
             ex.printStackTrace();
         }
-        return controller;
+        return null;
     }
 
     private boolean setClazzMethod(List<Class<?>> classes){

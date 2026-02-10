@@ -8,6 +8,10 @@ import net.servboot.io.RequestBufferedReader;
 import net.servboot.io.ShortArrayInputStream;
 import net.servboot.request.Request;
 import net.servboot.request.RequestMapper;
+import net.servboot.response.Response;
+import net.servboot.utils.json.Json;
+import net.servboot.utils.reflection.ReflectionUtils;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -106,25 +110,9 @@ public final class ClientRequestTask extends Thread {
                 // TEMPORÁRIO
                 else if(request.getUrl().contains("favicon.ico")){
                     isFavicon = true;
-
-                    /*File favicon = new File(currentPath + faviconPath);
-                    System.out.println("GET FAVICON");
-                    out.write(HeaderBuilder.build(Headers.IMAGE_ICON, favicon.length(), favicon.getName()));
-                    FileInputStream fis = new FileInputStream(favicon);
-
-                    out.write(fis.readAllBytes());
-                    out.flush();*/
                     break;
                 } else if(request.getUrl().contains("gato.jpg")){
                     isFavicon = true;
-
-                    /*File catFile = new File(currentPath + catPath);
-                    System.out.println("GET CAT");
-                    out.write(HeaderBuilder.build(Headers.IMAGE_JPG, catFile.length(), catFile.getName()));
-                    FileInputStream fis = new FileInputStream(catFile);
-
-                    out.write(fis.readAllBytes());
-                    out.flush();*/
                     break;
                 }
             }
@@ -135,9 +123,47 @@ public final class ClientRequestTask extends Thread {
             }
 
             // Chamar o controller
-            ControllerBase controller = requestMapper.invoke(controllers);
-            if(controller != null && controllers.stream().noneMatch(c -> c.getClass().equals(controller.getClass()))) {
-                this.controllers.add(controller);
+            Object controllerResult = requestMapper.invoke(controllers);
+            short statusCode = 200;
+
+            if(controllerResult instanceof Response response){
+                statusCode = response.getResponseCode();
+                controllerResult = response.getBody();
+            }
+
+            // Devolver resposta ao cliente
+            if(controllerResult == null){
+                client.getOutputStream().write(HeaderBuilder.build(Headers.TEXT_PLAIN, statusCode, 0));
+                client.getOutputStream().flush();
+            } else if(ReflectionUtils.isPrimitive(controllerResult.getClass())) {
+                int extraBytes = 0;
+                for(char c : controllerResult.toString().toCharArray()){
+                    extraBytes += c > 127 ? 1 : 0;
+                }
+                client.getOutputStream().write(HeaderBuilder.build(Headers.TEXT_PLAIN, statusCode, controllerResult.toString().length() + extraBytes));
+                client.getOutputStream().write(controllerResult.toString().getBytes(StandardCharsets.UTF_8));
+                client.getOutputStream().flush();
+            } else if(controllerResult instanceof File file){
+                try(
+                    InputStream reader = new FileInputStream(file);
+                ) {
+                    client.getOutputStream().write(HeaderBuilder.build(
+                            Headers.getValueFromFileExtension(file.getName().substring(file.getName().indexOf(".") + 1)),
+                            statusCode, file.length()));
+                    client.getOutputStream().write(reader.readAllBytes());
+                    client.getOutputStream().flush();
+                }
+            } else {
+                String json = Json.encode(controllerResult);
+                int extraBytes = 0;
+
+                for(char c : json.toCharArray()){
+                    extraBytes += c > 127 ? 1 : 0;
+                }
+
+                client.getOutputStream().write(HeaderBuilder.build(Headers.APPLICATION_JSON, statusCode, json.length() + extraBytes));
+                client.getOutputStream().write(json.getBytes(StandardCharsets.UTF_8));
+                client.getOutputStream().flush();
             }
 
         } catch (Exception ex) {
@@ -163,21 +189,6 @@ public final class ClientRequestTask extends Thread {
                 System.out.println("Erro ao deletar arquivos temporários de upload: " + ex.getMessage());
                 ex.printStackTrace();
             }
-
-            /*if(!isFavicon && out != null){
-                try{
-                    File body = new File(currentPath + homePath);
-                    InputStream is = new FileInputStream(body);
-
-                    out.write(HeaderBuilder.build(Headers.TEXT_HTML, body.length()));
-                    out.write(is.readAllBytes());
-                    out.flush();
-                    out.close();
-                } catch (IOException ex) {
-                    System.out.println("Erro ao fechar a stream de saída: " + ex.getMessage());
-                    ex.printStackTrace();
-                }
-            }*/
 
             System.out.println("----- Fim da leitura dos dados do cliente -----");
             threads.remove(this);
