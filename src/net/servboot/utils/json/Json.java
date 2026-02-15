@@ -12,7 +12,11 @@ public class Json {
     }
 
     public static String encode(Object obj) throws Exception {
-        return encode(obj, Object.class, null);
+        if(obj instanceof List<?>){
+            return encode((List<?>) obj);
+        } else {
+            return encode(obj, Object.class, null);
+        }
     }
 
     public static <T> String encode(List<T> objects) throws Exception {
@@ -65,109 +69,205 @@ public class Json {
 
     private static String encode(Object object, Class<?> superClass, String injectJson) throws IllegalAccessException {
         StringBuilder json = new StringBuilder();
-        List<Field> fields = new ArrayList<>(Arrays.asList(object.getClass().getDeclaredFields()));
-        Class<?> type = object.getClass().getSuperclass();
-        while (type != null && type != Object.class) {
-            fields.addAll(Arrays.asList(type.getDeclaredFields()));
-            type = type.getSuperclass();
-        }
-        String[] names = fields.stream().map(Field::getName).toArray(String[]::new);
-        json.append("{");
-        if(injectJson != null && !injectJson.isEmpty()){
-            json.append(injectJson);
-        }
-        for (int j = 0; j < fields.size(); j++) {
-            fields.get(j).setAccessible(true);
-            Object value = fields.get(j).get(object);
-            json.append("\"");
-            json.append(names[j]);
-            json.append("\": ");
-            fields.get(j).setAccessible(true);
-            if(value == null){
-                json.append("null");
-                if(j < fields.size() - 1){
-                    json.append(",");
-                }
-            } else if(fields.get(j).getType() == String.class
-                    || fields.get(j).getType() == char.class){
-                json.append("\"");
-                json.append(fields.get(j).get(object));
-                if(j < fields.size() - 1){
-                    json.append("\",");
-                }
-                else{
-                    json.append("\"");
-                }
-            } else if(fields.get(j).getType() == int.class
-                    || fields.get(j).getType() == long.class
-                    || fields.get(j).getType() == double.class
-                    || fields.get(j).getType() == float.class
-                    || fields.get(j).getType() == boolean.class
-                    || fields.get(j).getType() == byte.class
-                    || fields.get(j).getType() == short.class) {
-                json.append(fields.get(j).get(object));
-                if(j < fields.size() - 1){
-                    json.append(",");
-                }
-            }
-            else if((value.getClass().isArray() || value instanceof Collection) && fields.get(j).getType() != superClass){
-                int dimension = 0;
-                Class<?> t = fields.get(j).getType().getComponentType();
-                while(t != null){
-                    dimension++;
-                    t = t.getComponentType();
-                }
-                switch (dimension){
-                    case 1:
-                        json.append(encode((Object[]) value, object.getClass()));
-                        if(j < fields.size() - 1){
-                            json.append(",");
-                        }
-                        break;
-                    case 2:
-                        json.append(encode((Object[][]) value, superClass));
-                        break;
-                    case 3:
-                        json.append(encode((Object[][][]) value, superClass));
-                        break;
-                    default:
-                        json.append(" \"Dimesions (");
-                        json.append(dimension);
-                        json.append(")\"");
-                }
-            } else if(value.getClass().isEnum()){
-                json.append("\"");
-                json.append(((Enum<?>) value).name());
-                json.append("\"");
-                if(j < fields.size() - 1){
-                    json.append(",");
-                }
-            }
-            else if(fields.get(j).getType() != superClass) {
-                StringBuilder injectedJson = new StringBuilder();
-                if((fields.get(j).get(object).getClass() != Integer.class) && !fields.get(j).get(object).getClass().getSimpleName().equalsIgnoreCase(fields.get(j).getType().getSimpleName())){
-                    injectedJson.append("\"");
-                    injectedJson.append(jsonTypeName);
-                    injectedJson.append("\": ");
-                    injectedJson.append("\"");
-                    injectedJson.append(fields.get(j).get(object).getClass().getName());
-                    injectedJson.append("\",");
-                }
-                json.append(encode(value, object.getClass(), injectedJson.toString()));
-                if(j < fields.size() - 1){
-                    json.append(",");
-                }
-            } else{
-                json.append("\"");
-                json.append(value.getClass().getSimpleName());
-                json.append("\"");
-                if(j < fields.size() - 1){
-                    json.append(",");
-                }
-            }
 
+        if(object instanceof Map || object instanceof Dictionary){
+            json.append(encodeMap(object));
+        } else if(object.getClass().equals(Boolean.class)
+            || object.getClass().equals(Byte.class)
+            || object.getClass().equals(Short.class)
+            || object.getClass().equals(Integer.class)
+            || object.getClass().equals(Long.class)
+            || object.getClass().equals(Float.class)
+            || object.getClass().equals(Double.class))
+        {
+            json.append(object);
+        } else if(object.getClass().equals(Character.class)
+            ||  object.getClass().equals(String.class))
+        {
+            json.append("\"");
+            json.append(object);
+            json.append("\"");
+        } else {
+            List<Field> fields = new ArrayList<>(Arrays.asList(object.getClass().getDeclaredFields()));
+            Class<?> type = object.getClass().getSuperclass();
+            while (type != null && type != Object.class) {
+                fields.addAll(Arrays.asList(type.getDeclaredFields()));
+                type = type.getSuperclass();
+            }
+            String[] names = fields.stream().map(Field::getName).toArray(String[]::new);
+            json.append("{");
+            if (injectJson != null && !injectJson.isEmpty()) {
+                json.append(injectJson);
+            }
+            for (int j = 0; j < fields.size(); j++) {
+                Object value;
+                if (!fields.get(j).getType().equals(Map.class) && !fields.get(j).getType().equals(Dictionary.class)) {
+                    fields.get(j).setAccessible(true);
+                    json.append("\"");
+                    json.append(names[j]);
+                    json.append("\": ");
+                    value = fields.get(j).get(object);
+                } else {
+                    value = object;
+                }
+                fields.get(j).setAccessible(true);
+                if (value == null) {
+                    json.append("null");
+                    if (j < fields.size() - 1) {
+                        json.append(",");
+                    }
+                } else if (fields.get(j).getType() == String.class
+                        || fields.get(j).getType() == char.class) {
+                    json.append("\"");
+                    json.append(fields.get(j).get(object));
+                    if (j < fields.size() - 1) {
+                        json.append("\",");
+                    } else {
+                        json.append("\"");
+                    }
+                } else if (fields.get(j).getType() == int.class
+                        || fields.get(j).getType() == long.class
+                        || fields.get(j).getType() == double.class
+                        || fields.get(j).getType() == float.class
+                        || fields.get(j).getType() == boolean.class
+                        || fields.get(j).getType() == byte.class
+                        || fields.get(j).getType() == short.class) {
+                    json.append(fields.get(j).get(object));
+                    if (j < fields.size() - 1) {
+                        json.append(",");
+                    }
+                } else if ((value.getClass().isArray() || value instanceof Collection) && fields.get(j).getType() != superClass) {
+                    int dimension = 0;
+                    Class<?> t = fields.get(j).getType().getComponentType();
+                    while (t != null) {
+                        dimension++;
+                        t = t.getComponentType();
+                    }
+                    switch (dimension) {
+                        case 1:
+                            json.append(encode((Object[]) value, object.getClass()));
+                            if (j < fields.size() - 1) {
+                                json.append(",");
+                            }
+                            break;
+                        case 2:
+                            json.append(encode((Object[][]) value, superClass));
+                            break;
+                        case 3:
+                            json.append(encode((Object[][][]) value, superClass));
+                            break;
+                        default:
+                            json.append(" \"Dimesions (");
+                            json.append(dimension);
+                            json.append(")\"");
+                    }
+                } else if (value.getClass().isEnum()) {
+                    json.append("\"");
+                    json.append(((Enum<?>) value).name());
+                    json.append("\"");
+                    if (j < fields.size() - 1) {
+                        json.append(",");
+                    }
+                } else if (fields.get(j).getType() != superClass) {
+                    StringBuilder injectedJson = new StringBuilder();
+                    if ((fields.get(j).get(object).getClass() != Integer.class) && !fields.get(j).get(object).getClass().getSimpleName().equalsIgnoreCase(fields.get(j).getType().getSimpleName())) {
+                        injectedJson.append("\"");
+                        injectedJson.append(jsonTypeName);
+                        injectedJson.append("\": ");
+                        injectedJson.append("\"");
+                        injectedJson.append(fields.get(j).get(object).getClass().getName());
+                        injectedJson.append("\",");
+                    }
+                    json.append(encode(value, object.getClass(), injectedJson.toString()));
+                    if (j < fields.size() - 1) {
+                        json.append(",");
+                    }
+                } else {
+                    json.append("\"");
+                    json.append(value.getClass().getSimpleName());
+                    json.append("\"");
+                    if (j < fields.size() - 1) {
+                        json.append(",");
+                    }
+                }
+
+            }
+            json.append("}");
         }
-        json.append("}");
+        return json.toString();
+    }
+
+    private static String encodeMap(Object object){
+        StringBuilder json = new StringBuilder();
+        try{
+            json.append("{");
+            if(object instanceof Map<?, ?> map){
+                int length = map.size();
+                int count = 0;
+
+                for(Object key  : map.keySet()){
+                    json.append("\"");
+                    json.append(key.toString());
+                    json.append("\": ");
+                    Object value = map.get(key);
+                    if(value.getClass().equals(Long.class)
+                        || value.getClass().equals(Double.class)
+                        || value.getClass().equals(Float.class)
+                        || value.getClass().equals(Boolean.class)
+                        || value.getClass().equals(Byte.class)
+                        || value.getClass().equals(Short.class)
+                        || value.getClass().equals(Integer.class))
+                    {
+                        json.append(value);
+                    } else if(value.getClass().equals(String.class) || value.getClass().equals(Character.class)){
+                        json.append("\"");
+                        json.append(value);
+                        json.append("\"");
+                    } else {
+                        json.append(encode(map.get(key), Object.class, ""));
+                    }
+
+                    if(++count > 0 && count < length){
+                        json.append(",");
+                    }
+                }
+            } else if(object instanceof Dictionary<?,?> dic){
+                int length = dic.size();
+                int count = 0;
+                Enumeration<?> keys = dic.keys();
+
+                while(keys.hasMoreElements()){
+                    String key = keys.nextElement().toString();
+                    json.append("\"");
+                    json.append(key);
+                    json.append("\": ");
+                    Object value = dic.get(key);
+                    if(value.getClass().equals(Long.class)
+                            || value.getClass().equals(Double.class)
+                            || value.getClass().equals(Float.class)
+                            || value.getClass().equals(Boolean.class)
+                            || value.getClass().equals(Byte.class)
+                            || value.getClass().equals(Short.class)
+                            || value.getClass().equals(Integer.class))
+                    {
+                        json.append(value);
+                    } else if(value.getClass().equals(String.class) || value.getClass().equals(Character.class)){
+                        json.append("\"");
+                        json.append(value);
+                        json.append("\"");
+                    } else {
+                        json.append(encode(dic.get(key), Object.class, ""));
+                    }
+
+                    if(++count > 0 && count < length){
+                        json.append(",");
+                    }
+                }
+            }
+            json.append("}");
+        } catch(Exception e){
+            e.printStackTrace();
+        }
         return json.toString();
     }
 

@@ -47,7 +47,7 @@ public class FormDataReader {
                         } else{
                             formData.put(fileName, new LinkedList<>(List.of(file)));
                         }
-                    } else if (!line.equals("--")) {
+                    } else if (line.contains("\"")) {
                         String key = getKey(line);
                         readLine();
                         String value = readLine();

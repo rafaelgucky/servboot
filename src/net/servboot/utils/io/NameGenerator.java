@@ -3,11 +3,13 @@ package net.servboot.utils.io;
 import java.util.Random;
 
 public class NameGenerator {
+    public static final int NAME_SIZE = 40;
+
     public static String generateName(String extension) {
         Random random = new Random();
         String name = "";
 
-        for(int i = 0; i < 20; i++){
+        for(int i = 0; i < NAME_SIZE; i++){
             name += (char) random.nextInt(65, 90);
         }
 

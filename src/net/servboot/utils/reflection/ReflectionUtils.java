@@ -5,7 +5,6 @@ import net.servboot.controllers.ControllerBase;
 import net.servboot.request.Request;
 import net.servboot.utils.json.Json;
 import java.io.File;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -18,12 +17,6 @@ public class ReflectionUtils {
         if(method == null) return null;
         parameters = new LinkedList<>(Arrays.asList(method.getParameters()));
         return parameters;
-    }
-
-    public static List<Annotation> getMethodAnnotations(Method method){
-        List<Annotation> annotations;
-        annotations = new LinkedList<>(Arrays.asList(method.getAnnotations()));
-        return annotations;
     }
 
     @SuppressWarnings("unchecked")
@@ -84,7 +77,7 @@ public class ReflectionUtils {
     public static Object invoke(Request request, List<Object> params, List<ControllerBase> controllers, List<Class<?>> requestsContainerDI, List<Object> applicationContainerDi){
         ControllerBase controller = null;
 
-        if(request.getClazz() == null || request.getMethod() == null) throw new RuntimeException("No class or method found");
+        if(request.getClazz() == null || request.getMethod() == null) throw new RuntimeException("Route not found.[ URL: " + request.getUrl() + ", Method: " + request.getStringMethod() + " ]");
 
         try{
             if(!controllers.isEmpty() && controllers.stream().anyMatch(c -> c.getClass().equals(request.getClazz()))){

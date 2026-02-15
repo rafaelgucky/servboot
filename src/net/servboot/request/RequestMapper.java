@@ -1,7 +1,6 @@
 package net.servboot.request;
 
 import net.servboot.annotations.Controller;
-import net.servboot.annotations.methods.MethodAnnotationService;
 import net.servboot.controllers.ControllerBase;
 import net.servboot.utils.reflection.AnnotationResearcher;
 import net.servboot.utils.reflection.ReflectionUtils;
@@ -71,7 +70,8 @@ public final class RequestMapper {
             }
             // Define a classe e o metodo da requisição
             if(setClazzMethod(classes)){
-                Map<Object, Parameter> params = ReflectionUtils.sortParameters(request, ReflectionUtils.getMethodParameters(request.getMethod()));
+                Map<Object, Parameter> params =
+                        ReflectionUtils.sortParameters(request, ReflectionUtils.getMethodParameters(request.getMethod()));
 
                 if(params != null){
                     for(Entry<Object, Parameter> entry : params.entrySet()){
@@ -92,9 +92,11 @@ public final class RequestMapper {
         if(classes == null || classes.isEmpty()) throw new  RuntimeException("The list of classes cannot be empty");
         try {
             for (Class<?> clazz : classes) {
-                for (Annotation clazzAnnotation : Arrays.stream(clazz.getDeclaredAnnotations()).filter(a -> a.annotationType().equals(Controller.class)).toList()) {
+                for (Annotation clazzAnnotation : Arrays.stream(clazz.getDeclaredAnnotations())
+                        .filter(a -> a.annotationType().equals(Controller.class)).toList()) {
                     for (Method m : clazz.getDeclaredMethods()) {
-                        for (Annotation methodAnnotation : Arrays.stream(m.getDeclaredAnnotations()).filter(MethodAnnotationService::validAnnotation).toList()) {
+                        for (Annotation methodAnnotation : Arrays.stream(m.getDeclaredAnnotations())
+                                .filter(a -> a.annotationType().getSimpleName().equalsIgnoreCase(request.getStringMethod())).toList()) {
                             String controllerRoute = clazzAnnotation.annotationType()
                                     .getMethod("value")
                                     .invoke(clazzAnnotation)
@@ -103,7 +105,9 @@ public final class RequestMapper {
                                     .getMethod("value")
                                     .invoke(methodAnnotation)
                                     .toString().trim();
-                            String apiRoute = StringUrlUtils.format((controllerRoute + methodRoute));
+                            String apiRoute = StringUrlUtils.format(
+                                    (StringUrlUtils.formatControllerUrl(controllerRoute)
+                                            + StringUrlUtils.formatMethodUrl(methodRoute)));
 
                             // Verifica se é a rota correta
 

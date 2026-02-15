@@ -7,14 +7,14 @@ import java.nio.charset.StandardCharsets;
 
 public final class HeaderBuilder {
     public static byte[] build(Headers headers, short responseCode, long contentLength) {
-        return build(headers, responseCode,"",  contentLength);
+        return build(headers, responseCode,"",  contentLength, false);
     }
 
-    public static byte[] build(Headers headers, short responseCode, long contentLength, String fileName){
-        return build(headers, responseCode, fileName, contentLength);
+    public static byte[] build(Headers headers, short responseCode, long contentLength, boolean download, String fileName){
+        return build(headers, responseCode, fileName, contentLength, download);
     }
 
-    private static byte[] build(Headers headers, short responseCode, String fileName, long contentLength) {
+    private static byte[] build(Headers headers, short responseCode, String fileName, long contentLength, boolean download) {
 //        byte[] headersFileTypes = {2, 3, 4, 5};
 //        for (byte headersFileType : headersFileTypes) {
 //            if (headersFileType == headers.getValue() && (fileName == null || fileName.isEmpty())) {
@@ -34,6 +34,12 @@ public final class HeaderBuilder {
                 header.append("Content-Length: ");
                 header.append(contentLength);
                 header.append("\r\n");
+                header.append("Content-Disposition: ");
+                header.append(download ? "attachment" : "inline");
+                header.append("; filename=");
+                header.append("\"");
+                header.append(fileName);
+                header.append("\"\r\n");
                 header.append("Connection: close\r\n");
                 header.append("\r\n");
                 break;
@@ -47,6 +53,12 @@ public final class HeaderBuilder {
                 header.append("Content-Length: ");
                 header.append(contentLength);
                 header.append("\r\n");
+                header.append("Content-Disposition: ");
+                header.append(download ? "attachment" : "inline");
+                header.append("; filename=");
+                header.append("\"");
+                header.append(fileName);
+                header.append("\"\r\n");
                 header.append("Connection: close\r\n");
                 header.append("\r\n");
                 break;
@@ -60,7 +72,12 @@ public final class HeaderBuilder {
                 header.append("Content-Length: ");
                 header.append(contentLength);
                 header.append("\r\n");
-                header.append("Content-Disposition: inline; filename=");
+                header.append("Content-Disposition: ");
+                header.append(download ? "attachment" : "inline");
+                header.append("; filename=");
+                header.append("\"");
+                header.append(fileName);
+                header.append("\"\r\n");
                 header.append("\"");
                 header.append(fileName);
                 header.append("\"\r\n");
@@ -77,7 +94,9 @@ public final class HeaderBuilder {
                 header.append("Content-Length: ");
                 header.append(contentLength);
                 header.append("\r\n");
-                header.append("Content-Disposition: inline; filename=");
+                header.append("Content-Disposition: ");
+                header.append(download ? "attachment" : "inline");
+                header.append("; filename=");
                 header.append("\"");
                 header.append(fileName);
                 header.append("\"\r\n");
@@ -94,7 +113,28 @@ public final class HeaderBuilder {
                 header.append("Content-Length: ");
                 header.append(contentLength);
                 header.append("\r\n");
-                header.append("Content-Disposition: inline; filename=");
+                header.append("Content-Disposition: ");
+                header.append(download ? "attachment" : "inline");
+                header.append("; filename=");
+                header.append("\"");
+                header.append(fileName);
+                header.append("\"\r\n");
+                header.append("Connection: close\r\n");
+                header.append("\r\n");
+                break;
+            case 5:
+                header.append("HTTP/1.1 ");
+                header.append(responseCode);
+                header.append(" ");
+                header.append(FormatStringUtils.addSpaceOnUpperCase(StatusCode.getFromCode(responseCode).name()));
+                header.append("\r\n");
+                header.append("Content-Type: image/jpeg\r\n");
+                header.append("Content-Length: ");
+                header.append(contentLength);
+                header.append("\r\n");
+                header.append("Content-Disposition: ");
+                header.append(download ? "attachment" : "inline");
+                header.append("; filename=");
                 header.append("\"");
                 header.append(fileName);
                 header.append("\"\r\n");
@@ -124,6 +164,31 @@ public final class HeaderBuilder {
                 header.append("Content-Length: ");
                 header.append(contentLength);
                 header.append("\r\n");
+                header.append("Content-Disposition: ");
+                header.append(download ? "attachment" : "inline");
+                header.append("; filename=");
+                header.append("\"");
+                header.append(fileName);
+                header.append("\"\r\n");
+                header.append("Connection: close\r\n");
+                header.append("\r\n");
+                break;
+            case 8:
+                header.append("HTTP/1.1 ");
+                header.append(responseCode);
+                header.append(" ");
+                header.append(FormatStringUtils.addSpaceOnUpperCase(StatusCode.getFromCode(responseCode).name()));
+                header.append("\r\n");
+                header.append("Content-Type: application/pdf; charset=UTF-8\r\n");
+                header.append("Content-Length: ");
+                header.append(contentLength);
+                header.append("\r\n");
+                header.append("Content-Disposition: ");
+                header.append(download ? "attachment" : "inline");
+                header.append("; filename=");
+                header.append("\"");
+                header.append(fileName);
+                header.append("\"\r\n");
                 header.append("Connection: close\r\n");
                 header.append("\r\n");
                 break;

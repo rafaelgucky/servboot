@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Files</title>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+        body{
+            display: flex;
+            background-color: #f2f2f2;
+            font-family: Arial, sans-serif;
+            place-content: center;
+            place-items: center;
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Insert File</h1>
+        <form method="POST" action="http://192.168.100.4:5000/api/files/insert" enctype="multipart/form-data">
+            <fieldset>
+                <legend>File</legend>
+                <p>
+                    <label for="file">File: </label>
+                    <input type="file" name="file" id="file">
+                </p>
+            </fieldset>
+            
+            <fieldset>
+                <input type="submit" value="Enviar">
+            </fieldset>
+        </form>
+    </main>
+</body>
+</html>

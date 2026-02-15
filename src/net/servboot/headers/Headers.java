@@ -8,7 +8,8 @@ public enum Headers {
     IMAGE_JPG(4),
     IMAGE_JPEG(5),
     TEXT_TXT(6),
-    TEXT_PLAIN(7);
+    TEXT_PLAIN(7),
+    APPLICATION_PDF(8);
 
     private final int value;
 
@@ -28,6 +29,7 @@ public enum Headers {
                 case "png" ->  Headers.IMAGE_PNG;
                 case "jpg" ->  Headers.IMAGE_JPG;
                 case "jpeg" ->  Headers.IMAGE_JPEG;
+                case "pdf" -> Headers.APPLICATION_PDF;
                 default -> Headers.TEXT_TXT;
                 };
     }

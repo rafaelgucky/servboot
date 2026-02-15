@@ -35,11 +35,11 @@ public class PersonController extends ControllerBase {
         return notFound();
     }
 
-    @GET("/create")
+    @POST("/create")
     public Response create(String name){
         System.out.println("-------------------------- PERSON CREATE -------------------------");
         System.out.println("Name: " + name);
         System.out.println("------------------------------------------------------------------");
-        return ok(new File("temp/465020893_567022439150042_2248649684429010980_n.jpg"));
+        return ok(new File("temp/CalendárioAcadêmico.pdf"));
     }
 }

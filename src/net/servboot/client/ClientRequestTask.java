@@ -5,10 +5,12 @@ import net.servboot.headers.HeaderBuilder;
 import net.servboot.headers.Headers;
 import net.servboot.io.FormDataReader;
 import net.servboot.io.RequestBufferedReader;
+import net.servboot.io.ServBootFile;
 import net.servboot.io.ShortArrayInputStream;
 import net.servboot.request.Request;
 import net.servboot.request.RequestMapper;
 import net.servboot.response.Response;
+import net.servboot.utils.io.NameGenerator;
 import net.servboot.utils.json.Json;
 import net.servboot.utils.reflection.ReflectionUtils;
 
@@ -153,6 +155,34 @@ public final class ClientRequestTask extends Thread {
                     client.getOutputStream().write(reader.readAllBytes());
                     client.getOutputStream().flush();
                 }
+            } else if(controllerResult instanceof ServBootFile sbInputStream){
+                File responseFile;
+
+                do{
+                    responseFile = new File("temp/" + NameGenerator.generateName(sbInputStream.getExtension()));
+                } while (responseFile.exists());
+
+                Files.createFile(responseFile.toPath());
+
+                try(
+                    OutputStream out = new FileOutputStream(responseFile);
+                ){
+                    sbInputStream.getInputStream().transferTo(out);
+                } catch(IOException ioe){
+                    ioe.printStackTrace();
+                }
+
+                try(
+                    InputStream reader = new FileInputStream(responseFile);
+                ) {
+                    client.getOutputStream().write(HeaderBuilder.build(
+                            Headers.getValueFromFileExtension(sbInputStream.getExtension()),
+                            statusCode, responseFile.length(), sbInputStream.isDownload(), sbInputStream.getFileName()));
+                    client.getOutputStream().write(reader.readAllBytes());
+                    client.getOutputStream().flush();
+                }
+
+                Files.deleteIfExists(responseFile.toPath());
             } else {
                 String json = Json.encode(controllerResult);
                 int extraBytes = 0;

@@ -11,7 +11,7 @@ import java.util.Map;
 
 public class StringUrlUtils {
     public static String format(String url) {
-        if(url == null) return "";
+        if(url == null || url.isEmpty()) return "";
         return url.substring(0, (url.lastIndexOf('/') >= url.length() - 1 ? url.lastIndexOf('/') : url.length()));
     }
 
@@ -89,5 +89,34 @@ public class StringUrlUtils {
         }
 
         return pathParams;
+    }
+
+    public static String formatControllerUrl(String controllerUrl){
+        String newUrl = "";
+
+        for(int i = 0; i < controllerUrl.length(); i++){
+            if(i == 0 && controllerUrl.charAt(i) != '/'){
+                newUrl += "/";
+            } else if(i == controllerUrl.length() - 1 && controllerUrl.charAt(i) != '/'){
+                newUrl += controllerUrl.charAt(i);
+                newUrl += "/";
+                continue;
+            }
+
+            newUrl += controllerUrl.charAt(i);
+        }
+
+        return newUrl;
+    }
+
+    public static String formatMethodUrl(String methodUrl){
+        String newUrl = "";
+
+        for(int i = 0; i < methodUrl.length(); i++){
+            if(i == 0 && methodUrl.charAt(i) == '/'){ continue; }
+            newUrl += methodUrl.charAt(i);
+        }
+
+        return newUrl;
     }
 }

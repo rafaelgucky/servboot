@@ -1,13 +1,24 @@
 package net.servboot.controllers;
 
+import net.servboot.io.ServBootFile;
 import net.servboot.request.Request;
 import net.servboot.response.Response;
+
+import java.io.InputStream;
 
 public class ControllerBase {
     public Request Request;
 
     public void setRequest(Request request){
         this.Request = request;
+    }
+
+    public Response file(InputStream inputStream, String fileName) {
+        return new Response(200).setBody(new ServBootFile(inputStream, fileName, false));
+    }
+
+    public Response file(InputStream inputStream, String fileName, boolean download) {
+        return new Response(200).setBody(new ServBootFile(inputStream, fileName, download));
     }
 
     public Response ok(Object object){
