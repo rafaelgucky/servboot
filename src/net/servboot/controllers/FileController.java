@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @Controller("/api/files")
 public class FileController extends ControllerBase {
@@ -44,7 +45,7 @@ public class FileController extends ControllerBase {
         return notFound(new File("src/net/servboot/static/home.html"));
     }
 
-    @GET("find/{id}")
+    @GET("find/id/{id}")
     public Response find(int id){
         Map<String, InputStream> map = fileService.find(id);
 
@@ -63,6 +64,11 @@ public class FileController extends ControllerBase {
 
     @GET("")
     public Response insertView(){
+        Set<Map.Entry<Object, Object>> t = System.getProperties().entrySet();
+        for(Map.Entry<Object, Object> e: t){
+            System.out.println(e.getKey() + ": " + e.getValue());
+        }
+
         return ok(new File("src/net/servboot/static/files/insertFile.html"));
     }
 }

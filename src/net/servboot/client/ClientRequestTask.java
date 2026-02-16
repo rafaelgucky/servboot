@@ -86,29 +86,6 @@ public final class ClientRequestTask extends Thread {
                     System.out.println("----------------------------------------------");
                 }
 
-                if(request.getContentLength() > 0){
-                    //client.setSoTimeout(15000);
-                    if(request.getContentType().contains("multipart/form-data"))
-                    {
-                        FormDataReader fdr = new FormDataReader(in, isr, shortArray, request.getHeader("boundary"), request.getContentLength());
-                        Map<String, Object> formData = fdr.readFormData();
-                        for(Map.Entry<String, Object> entry : formData.entrySet()){
-                            if(entry.getValue() instanceof List files){
-                                request.addFile(entry.getKey(), files);
-                            } else {
-                                request.addParameter(entry.getKey(), entry.getValue().toString());
-                            }
-                        }
-                        break;
-                    } else if (request.getContentType().contains("json")) {
-                        request.setStringBody(rbr.readBody(request.getContentLength()));
-                        System.out.println(request.getStringBody());
-                        break;
-                    }
-                }
-
-
-
                 // TEMPORÁRIO
                 else if(request.getUrl().contains("favicon.ico")){
                     isFavicon = true;
@@ -116,6 +93,25 @@ public final class ClientRequestTask extends Thread {
                 } else if(request.getUrl().contains("gato.jpg")){
                     isFavicon = true;
                     break;
+                }
+            }
+
+            if(request.getContentLength() > 0){
+                //client.setSoTimeout(15000);
+                if(request.getContentType().contains("multipart/form-data"))
+                {
+                    FormDataReader fdr = new FormDataReader(in, isr, shortArray, request.getHeader("boundary"), request.getContentLength());
+                    Map<String, Object> formData = fdr.readFormData();
+                    for(Map.Entry<String, Object> entry : formData.entrySet()){
+                        if(entry.getValue() instanceof List files){
+                            request.addFile(entry.getKey(), files);
+                        } else {
+                            request.addParameter(entry.getKey(), entry.getValue().toString());
+                        }
+                    }
+                } else if (request.getContentType().contains("json")) {
+                    request.setStringBody(rbr.readBody(request.getContentLength()));
+                    System.out.println(request.getStringBody());
                 }
             }
 

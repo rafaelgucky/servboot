@@ -12,7 +12,7 @@ public class FormDataReader {
     private final InputStream in;
     private InputStreamReader reader;
     private final ShortArrayInputStream shortArray;
-    File baseDir = new File("temp");
+    File baseDir = new File(System.getProperty("java.io.tmpdir") + "/servboot/");
     private final String boundary;
     private long length;
     private long totalReady = 0;
@@ -87,15 +87,15 @@ public class FormDataReader {
 
     private File readBytes(String extension){
         File file;
-        int[] tempBuffer = new int[this.boundary.length() + 2];
+        int[] tempBuffer = new int[this.boundary.length()];
 
         do{
-            file = new File("temp\\" + NameGenerator.generateName(extension));
+            file = new File(Path.of(baseDir.toPath().toString(), "/", NameGenerator.generateName(extension)).toString());
         } while (file.exists());
 
         try{
             if(!baseDir.exists()){
-                Files.createDirectory(Path.of("temp"));
+                Files.createDirectory(Path.of(baseDir.toPath().toString()));
             }
             if(!file.createNewFile()) throw new IOException("Erro ao criar o arquivo: " + file.getName());
         } catch (IOException ex) {
@@ -133,6 +133,7 @@ public class FormDataReader {
             System.out.println("Erro ao ler bytes do arquivo: " + ex.getMessage());
             ex.printStackTrace();
         }
+
         return file;
     }
 

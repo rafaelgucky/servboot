@@ -2,13 +2,17 @@ package net.servboot.utils.url;
 
 import net.servboot.request.Request;
 import net.servboot.utils.StringUtils;
-
 import java.net.MalformedURLException;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * @author Rafael Gucky
+ * @since 01/2026
+ * @version 1.0.0
+ */
 public class StringUrlUtils {
     public static String format(String url) {
         if(url == null || url.isEmpty()) return "";
@@ -36,6 +40,12 @@ public class StringUrlUtils {
         return pathParams;
     }
 
+    /**
+     * @param request Request of client
+     * @param apiUrl Api route
+     * @return boolean
+     * @throws MalformedURLException Throw this exception case the url of client is malformed
+     */
     public static boolean match(Request request, String apiUrl) throws MalformedURLException {
         Map<String, String> params;
 
