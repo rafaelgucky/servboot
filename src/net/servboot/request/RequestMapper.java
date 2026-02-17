@@ -89,7 +89,7 @@ public final class RequestMapper {
     }
 
     private boolean setClazzMethod(List<Class<?>> classes){
-        if(classes == null || classes.isEmpty()) throw new  RuntimeException("The list of classes cannot be empty");
+        if(classes == null || classes.isEmpty()) throw new  RuntimeException("No controllers found");
         try {
             for (Class<?> clazz : classes) {
                 for (Annotation clazzAnnotation : Arrays.stream(clazz.getDeclaredAnnotations())
@@ -121,7 +121,6 @@ public final class RequestMapper {
                 }
             }
         } catch (Exception ex) {
-            System.out.println("Erro na extração de classe + method. ( " + this.getClass().getName() + " )");
             ex.printStackTrace();
         }
         return false;

@@ -1,9 +1,7 @@
 package net.servboot.io;
 
 import net.servboot.utils.io.NameGenerator;
-
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -125,7 +123,6 @@ public class FormDataReader {
                         fos.write(tempBuffer[i]);
                     }
                 } else {
-                    System.out.println("ACHOU FIM");
                     break;
                 }
             } while (totalReady < length);

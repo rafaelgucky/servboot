@@ -77,7 +77,7 @@ public class ReflectionUtils {
     public static Object invoke(Request request, List<Object> params, List<ControllerBase> controllers, List<Class<?>> requestsContainerDI, List<Object> applicationContainerDi){
         ControllerBase controller = null;
 
-        if(request.getClazz() == null || request.getMethod() == null) throw new RuntimeException("Route not found.[ URL: " + request.getUrl() + ", Method: " + request.getStringMethod() + " ]");
+        if(request.getClazz() == null || request.getMethod() == null) return null; //throw new RuntimeException("Route not found.[ URL: " + request.getUrl() + ", Method: " + request.getStringMethod() + " ]");
 
         try{
             if(!controllers.isEmpty() && controllers.stream().anyMatch(c -> c.getClass().equals(request.getClazz()))){

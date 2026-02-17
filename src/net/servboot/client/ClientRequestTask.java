@@ -27,15 +27,11 @@ public final class ClientRequestTask extends Thread {
     public ServerSocket server;
     public Socket client;
     Request request;
-    private Thread currentThread;
+    private final Thread currentThread;
     private final List<Thread> threads;
     private final List<ControllerBase> controllers;
-    private List<Class<?>> requestContainerDI;
-    private List<Object> applicationContainerDI;
-    private static final String currentPath = System.getProperty("user.dir");
-    private static final String faviconPath = "\\src\\net\\servboot\\static\\favicon.ico";
-    private static final String homePath = "\\src\\net\\servboot\\static\\home.html";
-    private static final String catPath = "\\src\\net\\servboot\\static\\images\\gato.jpg";
+    private final List<Class<?>> requestContainerDI;
+    private final List<Object> applicationContainerDI;
 
     public ClientRequestTask(ServerSocket server, Socket client,
                              Thread currentThread, List<Thread> threads,
@@ -53,11 +49,7 @@ public final class ClientRequestTask extends Thread {
 
     @Override
     public void run() {
-        //OutputStream out = null;
-        boolean isFavicon = false;
-
         try {
-            //out = client.getOutputStream();
             InputStream in =  client.getInputStream();
             ShortArrayInputStream shortArray = new ShortArrayInputStream(in);
             InputStreamReader isr = new InputStreamReader(shortArray, StandardCharsets.UTF_8);
@@ -71,29 +63,9 @@ public final class ClientRequestTask extends Thread {
             request = requestMapper.map(url);
             request.setClientOutputStream(client.getOutputStream());
 
-            System.out.println(url);
-
             String line;
             while (!(line = rbr.readLine()).isEmpty()) {
-                System.out.println(line);
                 request.addHeader(line);
-
-                if(!request.getCookies().isEmpty()){
-                    System.out.println("----------------- COOKIES --------------------");
-                    for(Map.Entry<String, String> cookie : request.getCookies().entrySet()){
-                        System.out.println(cookie.getKey() + ": " + cookie.getValue());
-                    }
-                    System.out.println("----------------------------------------------");
-                }
-
-                // TEMPORÁRIO
-                else if(request.getUrl().contains("favicon.ico")){
-                    isFavicon = true;
-                    break;
-                } else if(request.getUrl().contains("gato.jpg")){
-                    isFavicon = true;
-                    break;
-                }
             }
 
             if(request.getContentLength() > 0){
@@ -111,13 +83,7 @@ public final class ClientRequestTask extends Thread {
                     }
                 } else if (request.getContentType().contains("json")) {
                     request.setStringBody(rbr.readBody(request.getContentLength()));
-                    System.out.println(request.getStringBody());
                 }
-            }
-
-            // Não chamar controller
-            if(isFavicon) {
-                return;
             }
 
             // Chamar o controller
@@ -155,7 +121,7 @@ public final class ClientRequestTask extends Thread {
                 File responseFile;
 
                 do{
-                    responseFile = new File("temp/" + NameGenerator.generateName(sbInputStream.getExtension()));
+                    responseFile = new File(System.getProperty("java.io.tmpdir") + "/" + NameGenerator.generateName(sbInputStream.getExtension()));
                 } while (responseFile.exists());
 
                 Files.createFile(responseFile.toPath());
@@ -193,7 +159,6 @@ public final class ClientRequestTask extends Thread {
             }
 
         } catch (Exception ex) {
-            System.out.println(ex.getMessage());
             ex.printStackTrace();
         } finally {
 
@@ -212,11 +177,8 @@ public final class ClientRequestTask extends Thread {
                     }
                 }
             } catch (IOException ex) {
-                System.out.println("Erro ao deletar arquivos temporários de upload: " + ex.getMessage());
                 ex.printStackTrace();
             }
-
-            System.out.println("----- Fim da leitura dos dados do cliente -----");
             threads.remove(this);
         }
     }

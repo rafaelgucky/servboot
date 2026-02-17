@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="servboot:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/servboot_jar</output-path>
+    <root id="archive" name="servboot.jar">
+      <element id="module-output" name="streamDemo" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libraries/mysql-connector-j-9.6.0.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
