@@ -1,6 +1,8 @@
 package net.servboot.utils.reflection;
 
 import net.servboot.annotations.Controller;
+import net.servboot.utils.strings.StringUtils;
+
 import java.io.File;
 import java.util.*;
 
@@ -28,15 +30,15 @@ public final class AnnotationResearcher {
                     projectName += basePath.charAt(i);
                 }
 
-                String temp = "";
-                for (int i = projectName.length() - 1; i >= 0; i--) {
-                    temp += projectName.charAt(i);
-                }
+//                String temp = "";
+//                for (int i = projectName.length() - 1; i >= 0; i--) {
+//                    temp += projectName.charAt(i);
+//                }
 
-                projectName = temp;
+                projectName = StringUtils.reverse(projectName);
             }
 
-            // Verifica se as classes já foram mapedas
+            // Verifica se as classes já foram mapeadas
             if(classes == null) {
                 // Filtra por classes que tem a annotation @Controller
                 List<Class<?>> auxClasses = findClazz(new File(basePath));

@@ -1,5 +1,7 @@
 package net.servboot.utils.json;
 
+import net.servboot.utils.reflection.ReflectionUtils;
+
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.util.*;
@@ -12,8 +14,21 @@ public class Json {
     }
 
     public static String encode(Object obj) throws Exception {
-        if(obj instanceof List<?>){
+        if(obj instanceof Collection<?>){
             return encode((List<?>) obj);
+        } else if(obj.getClass().isArray()){
+            Class<?> componentType;
+            int dimensions = 1;
+            while((componentType = obj.getClass().getComponentType()) != null && componentType.isArray()){
+                dimensions++;
+            }
+
+            return switch (dimensions) {
+                case 1 -> encode((Object[]) obj, obj.getClass().getComponentType());
+                case 2 -> encode((Object[][]) obj, obj.getClass().getComponentType());
+                case 3 -> encode((Object[][][]) obj, obj.getClass().getComponentType());
+                default -> "[]";
+            };
         } else {
             return encode(obj, Object.class, null);
         }
@@ -424,28 +439,11 @@ public class Json {
     }
 
     private static void fillValue(Object obj, Field field, String value) throws IllegalAccessException {
-        if(!value.trim().isEmpty()){
-            field.setAccessible(true);
-            if (field.getType().equals(String.class)) {
-                field.set(obj, value.trim().replace("\"", ""));
-            } else if (field.getType().equals(int.class)) {
-                field.set(obj, Integer.parseInt(value));
-            } else if (field.getType().equals(long.class)) {
-                field.set(obj, Long.parseLong(value));
-            } else if (field.getType().equals(double.class)) {
-                field.set(obj, Double.parseDouble(value));
-            } else if (field.getType().equals(float.class)) {
-                field.set(obj, Float.parseFloat(value));
-            } else if (field.getType().equals(char.class)) {
-                field.set(obj, value.charAt(0));
-            } else if (field.getType().equals(boolean.class)) {
-                field.set(obj, Boolean.parseBoolean(value));
-            } else if (field.getType().equals(byte.class)) {
-                field.set(obj, Byte.parseByte(value));
-            } else if (field.getType().equals(short.class)) {
-                field.set(obj, Short.parseShort(value));
-            }
+        if (field.getType() == String.class) {
+            value = value.replace("\"", "");
         }
+
+        field.set(obj, ReflectionUtils.convertFromString(value, field.getType()));
     }
 
     // Split object from a json array

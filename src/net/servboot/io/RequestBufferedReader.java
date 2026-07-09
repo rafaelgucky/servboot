@@ -17,11 +17,9 @@ public class RequestBufferedReader {
         char[] character = new char[1];
         String body = "";
 
-        isr.read(character);
-
-        while(totalReady <= bytes) {
+        while(totalReady < bytes) {
             if(isr.read(character) == -1){
-                shortArray.reload((short) 125);
+                shortArray.reload((int) (bytes - totalReady));
                 isr.read(character);
             }
 
@@ -32,7 +30,7 @@ public class RequestBufferedReader {
         return body;
     }
 
-    public String readLine(){
+    public String readLine() {
         char[] character = new char[1];
         String line = "";
 

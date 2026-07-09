@@ -70,8 +70,7 @@ public final class RequestMapper {
             }
             // Define a classe e o metodo da requisição
             if(setClazzMethod(classes)){
-                Map<Object, Parameter> params =
-                        ReflectionUtils.sortParameters(request, ReflectionUtils.getMethodParameters(request.getMethod()));
+                Map<Object, Parameter> params = ReflectionUtils.sortParameters(request, ReflectionUtils.getMethodParameters(request.getMethod()));
 
                 if(params != null){
                     for(Entry<Object, Parameter> entry : params.entrySet()){

@@ -95,7 +95,7 @@ public class StringUrlUtils {
         }
 
         if(!apiUrlCopy.isEmpty() || !requestUrlCopy.isEmpty()){
-            throw new MalformedURLException("URL don't match! Comparing: '" + apiUrl + "' and '" + requestUrl + "'");
+            //throw new MalformedURLException("URL don't match! Comparing: '" + apiUrl + "' and '" + requestUrl + "'");
         }
 
         return pathParams;

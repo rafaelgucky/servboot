@@ -13,38 +13,63 @@ import net.servboot.response.Response;
 import net.servboot.utils.io.NameGenerator;
 import net.servboot.utils.json.Json;
 import net.servboot.utils.reflection.ReflectionUtils;
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.sql.Connection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public final class ClientRequestTask extends Thread {
     public ServerSocket server;
     public Socket client;
-    Request request;
+    public Request request;
     private final Thread currentThread;
-    private final List<Thread> threads;
     private final List<ControllerBase> controllers;
     private final List<Class<?>> requestContainerDI;
     private final List<Object> applicationContainerDI;
+    private Connection connection;
+    private Consumer<ClientRequestTask> onFinalize;
 
-    public ClientRequestTask(ServerSocket server, Socket client,
-                             Thread currentThread, List<Thread> threads,
-                             List<ControllerBase> controllers,
-                             List<Class<?>> requestContainerDI,
-                             List<Object> applicationContainerDI) {
+    public ClientRequestTask (ServerSocket server, Thread currentThread, List<ControllerBase> controllers, List<Class<?>> requestContainerDI, List<Object> applicationContainerDI) {
         this.server = server;
-        this.client = client;
         this.currentThread = currentThread;
-        this.threads = threads;
         this.controllers = controllers;
         this.requestContainerDI = requestContainerDI;
         this.applicationContainerDI = applicationContainerDI;
+    }
+
+    public ClientRequestTask(ServerSocket server, Socket client, Thread currentThread, List<ControllerBase> controllers, List<Class<?>> requestContainerDI, List<Object> applicationContainerDI) {
+        this.server = server;
+        this.client = client;
+        this.currentThread = currentThread;
+        this.controllers = controllers;
+        this.requestContainerDI = requestContainerDI;
+        this.applicationContainerDI = applicationContainerDI;
+    }
+
+    public void setClient(Socket client) {
+        this.client = client;
+    }
+
+    public void setRequest(Request request) {
+        this.request = request;
+    }
+
+    public Connection getConnection() {
+        return connection;
+    }
+
+    public void setConnection(Connection connection) {
+        this.connection = connection;
+    }
+
+    public void setOnFinalize(Consumer<ClientRequestTask> onFinalize) {
+        this.onFinalize = onFinalize;
     }
 
     @Override
@@ -60,9 +85,17 @@ public final class ClientRequestTask extends Thread {
             if(url.isEmpty()){
                 return;
             }
+
             request = requestMapper.map(url);
             request.setClientOutputStream(client.getOutputStream());
 
+            if (request.getUrl().equalsIgnoreCase("/favicon.ico") || request.getUrl().equalsIgnoreCase("/.well-known/appspecific/com.chrome.devtools.json")) {
+                if (this.onFinalize != null) {
+                    this.onFinalize.accept(this);
+                }
+
+                return;
+            }
             String line;
             while (!(line = rbr.readLine()).isEmpty()) {
                 request.addHeader(line);
@@ -164,22 +197,24 @@ public final class ClientRequestTask extends Thread {
 
             try{
                 client.getOutputStream().close();
-            } catch (IOException ex) {
-
-            }
+            } catch (IOException ignore) { }
 
             try{
-                Set<String> keys = request.getFiles().keySet();
-                for(String key : keys) {
-                    for(File file : request.getFiles().get(key)) {
-                        Files.deleteIfExists(file.toPath());
-                        Thread.yield();
+                if (this.request != null) {
+                    Set<String> keys = request.getFiles().keySet();
+                    for(String key : keys) {
+                        for(File file : request.getFiles().get(key)) {
+                            Files.deleteIfExists(file.toPath());
+                        }
                     }
                 }
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
-            threads.remove(this);
+
+            if (this.onFinalize != null) {
+                this.onFinalize.accept(this);
+            }
         }
     }
 }
