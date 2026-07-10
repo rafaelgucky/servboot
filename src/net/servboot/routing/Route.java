@@ -1,5 +1,9 @@
 package net.servboot.routing;
 
+import net.servboot.test.PersonController;
+import net.servboot.test.PersonService;
+
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 public class Route {
@@ -23,5 +27,11 @@ public class Route {
 
     public Method getMethod() {
         return method;
+    }
+
+
+    public Object call(Object... params) throws InvocationTargetException, IllegalAccessException {
+        method.setAccessible(true);
+        return method.invoke(controller, 1);
     }
 }

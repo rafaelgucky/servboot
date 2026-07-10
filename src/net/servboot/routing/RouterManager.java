@@ -48,11 +48,25 @@ public final class RouterManager {
     }
 
     public static Route getRoute(String url) {
-        Map<String, Object> params = new LinkedHashMap<>();
-        // COMPARADOR DE ROTAS OTIMIZADO (OBTER PARAMETROS AO MESMO TEMPO)
+        return routesPool.stream().filter(route -> StringUtils.equalsIgnorePathParams(route.getPath(), url)).findFirst().orElse(null);
+    }
+
+    public static Object getController(String url) {
+        for (Route route : routesPool) {
+            if (StringUtils.equalsIgnorePathParams(route.getPath(), url)) {
+                return route.getController();
+            }
+        }
+
         return null;
     }
 
+    /**
+     * Load all controllers
+     * @param file Base file
+     * @throws IOException If error on files
+     * @throws ClassNotFoundException If error loading controller
+     */
     private static synchronized void loadControllers(File file) throws IOException, ClassNotFoundException {
         if (file.isDirectory()) {
             for (File child : Objects.requireNonNull(file.listFiles())) {
