@@ -2,10 +2,16 @@ package net.servboot.routing;
 
 import net.servboot.annotations.Controller;
 import net.servboot.annotations.Path;
+import net.servboot.dependency.DependencyInjectionContainer;
+import net.servboot.utils.reflection.ReflectionUtils;
 import net.servboot.utils.reflection.method.MethodUtils;
 import net.servboot.utils.strings.StringUtils;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.*;
 
 public final class RouterManager {
@@ -13,7 +19,7 @@ public final class RouterManager {
     private static final Map<String, Object> controllersPool = new LinkedHashMap<>(); // Controller name : Controller
     private static final List<Route> routesPool = new LinkedList<>();
 
-    public static void init() throws IOException, ClassNotFoundException {
+    public static void init() throws IOException, ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException {
         loadControllers(new File(getBasePath()));
         int x = 1;
     }
@@ -67,7 +73,7 @@ public final class RouterManager {
      * @throws IOException If error on files
      * @throws ClassNotFoundException If error loading controller
      */
-    private static synchronized void loadControllers(File file) throws IOException, ClassNotFoundException {
+    private static synchronized void loadControllers(File file) throws IOException, ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException {
         if (file.isDirectory()) {
             for (File child : Objects.requireNonNull(file.listFiles())) {
                 loadControllers(child);
@@ -85,9 +91,12 @@ public final class RouterManager {
                 if (annotation != null) {
                     getControllersPool().put(annotation.value(), clazz);
 
-                   MethodUtils.getMethods(clazz).stream()
-                           .filter(method -> method.getAnnotation(Path.class) != null)
-                           .forEach(method -> getRoutesPool().add(new Route(annotation.value() + (!(annotation.value().endsWith("/") || method.getAnnotation(Path.class).value().startsWith("/")) ? "/" : "")  + method.getAnnotation(Path.class).value(), clazz, method)));
+                   List<Method> methods = MethodUtils.getMethods(clazz).stream()
+                           .filter(method -> method.getAnnotation(Path.class) != null).toList();
+
+                   for (Method method : methods) {
+                       getRoutesPool().add(new Route(annotation.value() + (!(annotation.value().endsWith("/") || method.getAnnotation(Path.class).value().startsWith("/")) ? "/" : "")  + method.getAnnotation(Path.class).value(), ReflectionUtils.instantiate(clazz, true), method));
+                   }
                 }
             }
         }

@@ -3,13 +3,11 @@ package net.servboot.utils.reflection;
 import net.servboot.annotations.*;
 import net.servboot.annotations.enums.EntityLoad;
 import net.servboot.controllers.ControllerBase;
+import net.servboot.dependency.DependencyInjectionContainer;
 import net.servboot.request.Request;
 import net.servboot.utils.json.Json;
 import java.io.File;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
+import java.lang.reflect.*;
 import java.security.InvalidParameterException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -110,28 +108,7 @@ public class ReflectionUtils {
                         }
                     }
 
-                    controller = switch (parameters.length) {
-                        case 0 -> (ControllerBase) request.getClazz().getDeclaredConstructor().newInstance();
-                        case 1 -> (ControllerBase) request.getClazz()
-                                .getDeclaredConstructor(parameters[0].getClass())
-                                .newInstance(parameters[0]);
-                        case 2 -> (ControllerBase) request.getClazz()
-                                .getDeclaredConstructor(parameters[0].getClass(), parameters[1].getClass())
-                                .newInstance(parameters[0], parameters[1]);
-                        case 3 -> (ControllerBase) request.getClazz()
-                                .getDeclaredConstructor(parameters[0].getClass(), parameters[1].getClass(),  parameters[2].getClass())
-                                .newInstance(parameters[0], parameters[1], parameters[2]);
-                        case 4 -> (ControllerBase) request.getClazz()
-                                .getDeclaredConstructor(parameters[0].getClass(), parameters[1].getClass(), parameters[2].getClass(), parameters[3].getClass())
-                                .newInstance(parameters[0], parameters[1], parameters[2], parameters[3]);
-                        case 5 -> (ControllerBase) request.getClazz()
-                                .getDeclaredConstructor(parameters[0].getClass(), parameters[1].getClass(), parameters[2].getClass(), parameters[3].getClass(), parameters[4].getClass())
-                                .newInstance(parameters[0], parameters[1], parameters[2], parameters[3], parameters[4]);
-                        case 6 -> (ControllerBase) request.getClazz()
-                                .getDeclaredConstructor(parameters[0].getClass(), parameters[1].getClass(), parameters[2].getClass(), parameters[3].getClass(), parameters[4].getClass(), parameters[5].getClass())
-                                .newInstance(parameters[0], parameters[1], parameters[2], parameters[3], parameters[4], parameters[5]);
-                        default -> controller;
-                    };
+                    controller = (ControllerBase) request.getClazz().getDeclaredConstructors()[0].newInstance(parameters);
                 }
                 controllers.add(controller);
             }
@@ -586,5 +563,48 @@ public class ReflectionUtils {
 
     public static boolean isPrimitive(Object value){
         return ReflectionUtils.isPrimitive(value.getClass());
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+    @SuppressWarnings("unchecked")
+    public static <T> T instantiate(Class<T> clazz, boolean fromDIContainer) throws IllegalAccessException, InvocationTargetException, InstantiationException {
+        Constructor<?>[] constructs = clazz.getDeclaredConstructors();
+        Parameter[] parameters;
+        Object[] instances;
+
+        if (constructs.length != 1) return null;
+
+        parameters = constructs[0].getParameters();
+        instances = new Object[parameters.length];
+
+        if (parameters.length == 0) {
+            return (T) constructs[0].newInstance();
+        }
+
+        for (int i = 0; i < parameters.length; i++) {
+            if (fromDIContainer) {
+                if (DependencyInjectionContainer.getApplicationScoped(parameters[i].getType()) != null) {
+                    instances[i] = (DependencyInjectionContainer.getApplicationScoped(parameters[i].getType()));
+                } else if (DependencyInjectionContainer.getRequestScoped(parameters[i].getType()) != null) {
+                    instances[i] = (DependencyInjectionContainer.getRequestScoped(parameters[i].getType()));
+                } else {
+                    throw new InstantiationException("class not found on DI Container");
+                }
+            } else {
+                instances[i] = (ReflectionUtils.instantiate(parameters[i].getType()));
+            }
+        }
+
+        return (T) constructs[0].newInstance(instances);
     }
 }

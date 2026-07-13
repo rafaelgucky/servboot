@@ -8,10 +8,10 @@ import java.lang.reflect.Method;
 
 public class Route {
     private final String path;
-    private final Class<?> controller;
+    private final Object controller;
     private final Method method;
 
-    public Route(String path, Class<?> controller, Method method) {
+    public Route(String path, Object controller, Method method) {
         this.path = path;
         this.controller = controller;
         this.method = method;
@@ -21,7 +21,7 @@ public class Route {
         return path;
     }
 
-    public Class<?> getController() {
+    public Object getController() {
         return controller;
     }
 
@@ -32,6 +32,6 @@ public class Route {
 
     public Object call(Object... params) throws InvocationTargetException, IllegalAccessException {
         method.setAccessible(true);
-        return method.invoke(controller, 1);
+        return method.invoke(controller, params);
     }
 }
