@@ -1,31 +1,39 @@
 package net.servboot.request;
 
+import net.servboot.routing.Route;
+import net.servboot.routing.RouterManager;
+import net.servboot.utils.strings.StringUtils;
 import net.servboot.utils.url.StringUrlUtils;
-
 import java.io.File;
 import java.io.OutputStream;
-import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public class Request {
-    private final Map<String, String> parameters = new LinkedHashMap<>();
+    private final Map<String, Object> parameters = new LinkedHashMap<>();
     private final Map<String, String> headers = new LinkedHashMap<>();
     private final Map<String, String> cookies = new LinkedHashMap<>();
     private final Map<String, List<File>> files = new LinkedHashMap<>();
+    private final Route route;
     private OutputStream clientOutputStream;
-    private Class<?> clazz;
-    private Method method;
     private String stringMethod;
     private String url;
     private String stringBody = "";
     private String contentType = "";
     private int contentLength;
 
-    public Request(String method, String url) {
+    public Request(String method, String url) throws RuntimeException {
         this.stringMethod = method.trim();
         this.url = StringUrlUtils.format(url.trim());
+        this.route = RouterManager.getRoute(this.url);
+//        if (this.route == null) throw new RuntimeException("Route not found");
+        if (this.route == null) {
+            Thread.currentThread().interrupt();
+            return;
+        }
+        this.parameters.putAll(StringUtils.getPathParameters(this.route.getPath(), this.url));
+        this.parameters.putAll(StringUtils.getQueryParameters(this.url));
     }
 
     public void setClientOutputStream(OutputStream clientOutputStream) {
@@ -46,7 +54,7 @@ public class Request {
         }
     }
 
-    public Map<String, String> getParameters() {
+    public Map<String, Object> getParameters() {
         return parameters;
     }
 
@@ -102,20 +110,8 @@ public class Request {
         return value;
     }
 
-    public void setClazz(Class<?> clazz) {
-        this.clazz = clazz;
-    }
-
-    public Class<?> getClazz() {
-        return clazz;
-    }
-
-    public void setMethod(Method method) {
-        this.method = method;
-    }
-
-    public Method getMethod() {
-        return method;
+    public Route getRoute() {
+        return route;
     }
 
     public void setStringMethod(String method) {

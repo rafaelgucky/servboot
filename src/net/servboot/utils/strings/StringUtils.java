@@ -15,6 +15,7 @@ public class StringUtils {
         url = removeSuffix(removePrefix(url.toLowerCase(), "/"), "/");
 
         if (!endPoint.contains("{")) return endPoint.equalsIgnoreCase(url);
+        if (search(endPoint, '/') != search(url, '/') ) return false;
 
         while (!endPoint.isEmpty() && !url.isEmpty()) {
             int paramIndex = endPoint.indexOf("{");
@@ -81,6 +82,18 @@ public class StringUtils {
         }
 
         return temp;
+    }
+
+    public static int search(String str, char target) {
+        int count = 0;
+
+        for (char c : str.toCharArray()) {
+            if (c == target) {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     public static String removePrefix(String target, String prefix) {

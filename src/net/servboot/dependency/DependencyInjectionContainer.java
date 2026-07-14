@@ -11,7 +11,9 @@ public class DependencyInjectionContainer {
     private static final Map<Class<?>, Object> applicationScoped = new LinkedHashMap<>();
     private static final List<Class<?>> requestScoped = new LinkedList<>();
 
-    public static <T> void addApplicationScoped(Class<T> clazz) throws IllegalAccessException, InstantiationException, InvocationTargetException, NoSuchMethodException {
+    public static <T> void addApplicationScoped(Class<T> clazz) throws IllegalAccessException, InstantiationException, InvocationTargetException, RuntimeException {
+        if (requestScoped.contains(clazz)) throw new RuntimeException("Duplicate class on DI container detected");
+        if (applicationScoped.containsKey(clazz)) throw new RuntimeException("Duplicate class on DI container detected");
         DependencyInjectionContainer.applicationScoped.put(clazz, ReflectionUtils.instantiate(clazz, false));
     }
 
@@ -20,7 +22,9 @@ public class DependencyInjectionContainer {
         return (T) DependencyInjectionContainer.applicationScoped.get(clazz);
     }
 
-    public static <T> void addRequestScoped(Class<T> clazz) {
+    public static <T> void addRequestScoped(Class<T> clazz) throws RuntimeException {
+        if (requestScoped.contains(clazz)) throw new RuntimeException("Duplicate class on DI container detected");
+        if (applicationScoped.containsKey(clazz)) throw new RuntimeException("Duplicate class on DI container detected");
         DependencyInjectionContainer.requestScoped.add(clazz);
     }
 

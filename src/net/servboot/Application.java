@@ -1,10 +1,11 @@
 package net.servboot;
 
+import net.servboot.dependency.DependencyInjectionContainer;
 import net.servboot.server.ServerManager;
+import java.lang.reflect.InvocationTargetException;
 
 public final class Application {
     private final ServerManager serverManager;
-    private final Thread curentThread;
 
     public Application() {
       this(Integer.MAX_VALUE);
@@ -15,7 +16,6 @@ public final class Application {
     }
 
     public Application(int port, int maxRequests) {
-        this.curentThread = Thread.currentThread();
         this.serverManager = new ServerManager(port, maxRequests);
     }
 
@@ -34,10 +34,10 @@ public final class Application {
     // ============= Container DI ========================//
 
     public void addRequestScoped(Class<?> clazz){
-        this.serverManager.addRequestScoped(clazz);
+        DependencyInjectionContainer.addRequestScoped(clazz);
     }
 
-    public void addApplicationScoped(Class<?> clazz){
-        this.serverManager.addApplicationScoped(clazz);
+    public void addApplicationScoped(Class<?> clazz)throws IllegalAccessException, InstantiationException, InvocationTargetException {
+        DependencyInjectionContainer.addApplicationScoped(clazz);
     }
 }

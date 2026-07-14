@@ -1,10 +1,7 @@
 package net.servboot.server;
 
 import net.servboot.client.ClientRequestTask;
-import net.servboot.controllers.ControllerBase;
-import net.servboot.database.ConnectionManager;
 import net.servboot.thread.ThreadManager;
-import net.servboot.utils.reflection.ReflectionUtils;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -19,9 +16,6 @@ public final class ServerManager {
     private final List<Thread> threadsPool = new LinkedList<>();
     private final Stack<String> threadNames = new Stack<>();
     private final Queue<ClientRequestTask> pendingThreads = new LinkedList<>();
-    private final List<ControllerBase> controllersPool = new LinkedList<>();
-    private final List<Class<?>> requestContainerDI = new  LinkedList<>();
-    private final List<Object> applicationContainerDI = new  LinkedList<>();
     private Consumer<ClientRequestTask> onAcceptClient;
     private final int port;
     private int maxRequests;
@@ -59,7 +53,7 @@ public final class ServerManager {
                 this.threadsPool.wait();
             }
 
-            ClientRequestTask thread = new ClientRequestTask(server, Thread.currentThread(), this.controllersPool, this.requestContainerDI, this.applicationContainerDI);
+            ClientRequestTask thread = new ClientRequestTask();
             thread.setName(this.getThreadName());
             this.threadsPool.add(thread);
 
@@ -100,13 +94,11 @@ public final class ServerManager {
                 Socket client = server.accept();
                 ClientRequestTask thread = this.getThread();
                 thread.setClient(client);
-                thread.setConnection(ConnectionManager.getConnection(thread.getName()));
 
                 thread.setOnFinalize(crt -> {
                     this.threadNames.push(crt.getName());
                     this.removeThread(crt);
                     this.startPendingThreads();
-                    ConnectionManager.addConnection(crt.getConnection());
 
                     if (this.onAcceptClient != null) {
                         this.onAcceptClient.accept(crt);
@@ -119,18 +111,8 @@ public final class ServerManager {
                     thread.start();
                 }
             }
-        } catch (Exception ex) {
-            ex.printStackTrace();
+        } catch (Exception ignore) {
+            ignore.printStackTrace();
         }
-    }
-
-    // ================ Container DI ================== //
-
-    public void addRequestScoped(Class<?> clazz){
-        this.requestContainerDI.add(clazz);
-    }
-
-    public void addApplicationScoped(Class<?> clazz){
-        applicationContainerDI.add(ReflectionUtils.instantiate(clazz));
     }
 }
