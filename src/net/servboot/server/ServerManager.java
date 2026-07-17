@@ -26,6 +26,10 @@ public final class ServerManager {
         this.maxRequests = maxRequests;
     }
 
+    public ServerSocket getServer() {
+        return server;
+    }
+
     public void setMaxRequests(int maxRequests) {
         this.maxRequests = maxRequests;
     }
@@ -87,8 +91,6 @@ public final class ServerManager {
     }
 
     public void startServer() {
-        System.out.println("ServBoot: Server is started!");
-
         try{
             while(running) {
                 Socket client = server.accept();

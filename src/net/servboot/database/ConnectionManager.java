@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Stack;
 
 public class ConnectionManager {
-    public static final short MAX_CONNECTIONS = 450;
+    public static final short MAX_CONNECTIONS = 5;
     private static final Stack<Connection> pool = new Stack<>();
     private static final Map<String, Connection> connections = new LinkedHashMap<>();
 

@@ -1,6 +1,8 @@
 package net.servboot;
 
+import net.servboot.database.ConnectionManager;
 import net.servboot.dependency.DependencyInjectionContainer;
+import net.servboot.routing.RouterManager;
 import net.servboot.server.ServerManager;
 import java.lang.reflect.InvocationTargetException;
 
@@ -23,12 +25,22 @@ public final class Application {
         this.serverManager.setMaxRequests(maxRequests);
     }
 
+    public void init() throws Exception {
+        System.out.println("ServBoot: Loading connections...");
+        ConnectionManager.init();
+        System.out.println("ServBoot: Connections loaded!");
+
+        System.out.println("ServBoot: Loading routes...");
+        RouterManager.init();
+        System.out.println("ServBoot: Routes loaded!");
+
+        System.out.println("ServBoot: Starting server...");
+        this.serverManager.initServer();
+        System.out.println("ServBoot: Server initialized! " + this.serverManager.getServer().getLocalSocketAddress().toString());
+    }
+
     public void run() {
-        if(this.serverManager.initServer()){
-            this.serverManager.startServer();
-        } else {
-            throw new RuntimeException("Error on server startup");
-        }
+        this.serverManager.startServer();
     }
 
     // ============= Container DI ========================//

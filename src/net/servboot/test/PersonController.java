@@ -36,26 +36,26 @@ public class PersonController extends ControllerBase {
     @GET("all")
     @Path("all")
     public Response findAll() throws Exception {
-        return ok(personService.findAll());
+        return ok();
     }
 
     @GET("find/{id}")
     @Path("find/{id}")
     public Response find(int id){
-        return ok(personService.find(id));
+        return ok();
     }
 
     @GET("find/index/{index}")
     @Path("find/index/{index}")
     public Response findByIndex(int index){
-        return ok(personService.findByIndex(index));
+        return ok();
     }
 
     @GET("count")
     @Path("count")
     public Response count() throws Exception {
         Map<String, Object> map = new HashMap<>();
-        map.put("count", personService.count());
+        map.put("count", 0);
         map.put("utc", Instant.now().toString());
         return ok(map);
     }
@@ -64,7 +64,7 @@ public class PersonController extends ControllerBase {
     @Path("create")
     public Response create(Person person) throws Exception {
         ConnectionManager.begin();
-        personService.add(person);
+//        personService.add(person);
         ConnectionManager.commit();
         return ok(person);
     }
@@ -86,7 +86,7 @@ public class PersonController extends ControllerBase {
         person.lastName = "Vareta";
         person.age = 25;
 //        person.pet = pet;
-        personService.add(person);
+//        personService.add(person);
         return ok(person);
     }
 
@@ -98,7 +98,7 @@ public class PersonController extends ControllerBase {
         person.name = "Nicanor";
         person.lastName = "Vassoura";
         person.age = 45;
-        return ok(personService.update(person));
+        return ok(true);
     }
 
 }

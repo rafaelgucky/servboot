@@ -1,10 +1,10 @@
 package net.servboot.database;
 
+import net.servboot.orm.ColumnMap;
 import net.servboot.orm.ServBootFunction;
-import net.servboot.test.Pet;
 import net.servboot.utils.reflection.ColumnUtils;
 import net.servboot.utils.reflection.ReflectionUtils;
-
+import net.servboot.utils.reflection.orm.OrmReflectionUtils;
 import java.lang.invoke.SerializedLambda;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -62,19 +62,23 @@ public class ServBootQuery <T> {
         return this;
     }
 
-    public List<String> getColumns() {
-        return this.getColumns(this.getEntityClass(), "");
+    public List<ColumnMap> getColumns() {
+        return this.getColumns(this.getEntityClass(), "", "");
     }
 
-    public List<String> getColumns(Class<?> entityClass, String prefix) {
+    public List<ColumnMap> getColumns(Class<?> entityClass, String dbPrefix, String entityPrefix) {
         Set<Field> fields = ReflectionUtils.getAllFields(entityClass);
-        List<String> columns = new LinkedList<>();
+        List<ColumnMap> columns = new LinkedList<>();
+
+        if (dbPrefix == null || dbPrefix.isEmpty()) {
+            dbPrefix = OrmReflectionUtils.getTableName(entityClass) + ".";
+        }
 
         for (Field field : fields) {
-            if (ReflectionUtils.isForeign(field)) {
-                columns.addAll(this.getColumns(field.getType(), "\"" + field.getName() + "\"."));
+            if (OrmReflectionUtils.isForeign(field)) {
+                columns.addAll(this.getColumns(field.getType(), OrmReflectionUtils.getTableName(field.getType()) + ".",  entityPrefix + field.getType().getSimpleName() + "."));
             } else if (!ReflectionUtils.isTransient(field)) {
-                columns.add(prefix + field.getName());
+                columns.add(new ColumnMap(dbPrefix + OrmReflectionUtils.getDbFieldName(field), entityPrefix + field.getName()));
             }
         }
 
