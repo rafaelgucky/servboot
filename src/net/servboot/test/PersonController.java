@@ -4,14 +4,19 @@ import net.servboot.annotations.Controller;
 import net.servboot.annotations.GET;
 import net.servboot.annotations.POST;
 import net.servboot.annotations.Path;
+import net.servboot.context.DataBaseContext;
 import net.servboot.controllers.ControllerBase;
 import net.servboot.database.ConnectionManager;
 import net.servboot.database.ServBootQuery;
 import net.servboot.response.Response;
+import net.servboot.sets.DataSet;
 import net.servboot.utils.reflection.ColumnUtils;
+import net.servboot.utils.reflection.orm.OrmReflectionUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,7 +41,9 @@ public class PersonController extends ControllerBase {
     @GET("all")
     @Path("all")
     public Response findAll() throws Exception {
-        return ok();
+        DataSet<Person> dt = DataBaseContext.personDataSet.clone();
+        ResultSet rs = ConnectionManager.getConnection().createStatement().executeQuery(dt.getSelectCommand());
+        return ok(OrmReflectionUtils.getAllEntitiesFromResultSet(Person.class, rs));
     }
 
     @GET("find/{id}")

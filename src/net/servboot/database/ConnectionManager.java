@@ -1,5 +1,7 @@
 package net.servboot.database;
 
+import net.servboot.client.ClientRequestTask;
+
 import java.awt.*;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -7,9 +9,10 @@ import java.sql.Statement;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Stack;
+import java.util.function.Consumer;
 
 public class ConnectionManager {
-    public static final short MAX_CONNECTIONS = 5;
+    public static final short MAX_CONNECTIONS = 100;
     private static final Stack<Connection> pool = new Stack<>();
     private static final Map<String, Connection> connections = new LinkedHashMap<>();
 
@@ -43,6 +46,10 @@ public class ConnectionManager {
             Connection c = pool.pop();
             String x = Thread.currentThread().getName();
             connections.put(x, c);
+
+            if (Thread.currentThread() instanceof ClientRequestTask thread) {
+                thread.setOnFinalize(t -> addConnection(c));
+            }
 
             return c;
         }

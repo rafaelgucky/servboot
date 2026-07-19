@@ -1,21 +1,26 @@
 package net.servboot.utils.reflection.orm;
 
+import com.mysql.cj.jdbc.result.ResultSetImpl;
 import net.servboot.annotations.Column;
 import net.servboot.annotations.ForeignKey;
 import net.servboot.annotations.Key;
 import net.servboot.annotations.Table;
 import net.servboot.annotations.enums.EntityLoad;
+import net.servboot.orm.Condition;
+import net.servboot.orm.Join;
+import net.servboot.orm.enums.JoinType;
+import net.servboot.orm.enums.Operator;
 import net.servboot.utils.reflection.ReflectionUtils;
+import net.servboot.utils.strings.StringUtils;
+
 import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.lang.reflect.InvocationTargetException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class OrmReflectionUtils {
-//    public static Map<String, Field> getFields(Class<?> entityClass) {
-//
-//    }
 
     public static String getTableName(Class<?> clazz){
         Table table = clazz.getAnnotation(Table.class);
@@ -31,10 +36,6 @@ public class OrmReflectionUtils {
         return getKeys(clazz).stream()
                 .filter(f -> f.getName().equalsIgnoreCase(fieldName))
                 .findFirst().orElse(null);
-    }
-
-    public static String getForeignFieldName(Field field) {
-        return field.getAnnotation(ForeignKey.class).column();
     }
 
     public static Set<Field> getKeys(Class<?> clazz) {
@@ -107,16 +108,66 @@ public class OrmReflectionUtils {
         return field.getAnnotation(ForeignKey.class) != null;
     }
 
-    public static boolean isEager(Field field) {
-        ForeignKey foreignKey = field.getAnnotation(ForeignKey.class);
-        if(foreignKey == null){
-            Column column = field.getAnnotation(Column.class);
-            if(column == null) return true;
-            else {
-                return column.load() == EntityLoad.EAGER;
-            }
-        } else {
-            return foreignKey.load() == EntityLoad.EAGER;
+    public static List<Join> getJoins(Class<?> clazz) {
+        List<Join> joins = new LinkedList<>();
+
+        for (Field foreignField : getForeignFields(clazz)) {
+            joins.add(generateJoin(clazz, foreignField));
         }
+
+        return joins;
+    }
+
+    public static Join generateJoin(Class<?> parent, Field child) {
+        ForeignKey foreignKey = Objects.requireNonNull(child.getAnnotation(ForeignKey.class));
+        Join join = new Join(foreignKey.notNull() ? JoinType.INNER_JOIN : JoinType.LEFT_JOIN, getTableName(getForeignClazz(child)));
+
+        for (Field field : getKeys(child.getType())) {
+            join.addCondition(new Condition( getTableName(parent) + "." + child.getType().getSimpleName().toLowerCase() + StringUtils.upperFirst(field.getName()), Operator.EQUAL, getTableName(child.getType()) + "." + getDbFieldName(field)));
+        }
+
+        return join;
+    }
+
+    public static <T> void fillEntityFromResultSet(T entity, ResultSet resultSet)
+            throws SQLException, NoSuchFieldException,IllegalAccessException, InvocationTargetException, InstantiationException {
+        if (!resultSet.next()) return;
+
+        List<String> columns = getQueriedColumns(resultSet);
+
+        do {
+            for (String column : columns) {
+                ReflectionUtils.callSetter(entity, column, resultSet.getObject(column));
+            }
+        } while (resultSet.next());
+    }
+
+    public static <T> List<T> getAllEntitiesFromResultSet(Class<T> entityClass, ResultSet resultSet)
+            throws SQLException, NoSuchFieldException, IllegalAccessException, InstantiationException, InvocationTargetException {
+        List<T> entities = new LinkedList<>();
+        List<String> columns;
+
+        if (!resultSet.next()) return entities;
+
+        columns = getQueriedColumns(resultSet);
+
+        do {
+            T entity = Objects.requireNonNull(ReflectionUtils.instantiate(entityClass, false));
+            for (String column : columns) {
+                Object value = resultSet.getObject(column);
+                if (value != null) {
+                    ReflectionUtils.callSetter(entity, column, value);
+                }
+            }
+            entities.add(entity);
+        } while (resultSet.next());
+
+        return entities;
+    }
+
+    public static List<String> getQueriedColumns(ResultSet resultSet) {
+        return Arrays.stream(((ResultSetImpl) resultSet).getMetadata().getFields())
+                .map(com.mysql.cj.result.Field::getName)
+                .toList();
     }
 }

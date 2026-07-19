@@ -16,7 +16,7 @@ public class Person {
     public String lastName;
     public Integer age;
 
-    @ForeignKey(entity = Pet.class, load = EntityLoad.EAGER)
+    @ForeignKey(entity = Pet.class)
     public Pet pet;
 
     public int getId() {

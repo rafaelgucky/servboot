@@ -4,11 +4,11 @@ import net.servboot.database.ConnectionManager;
 import net.servboot.dependency.DependencyInjectionContainer;
 import net.servboot.routing.RouterManager;
 import net.servboot.server.ServerManager;
+
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 
 public final class Application {
-    private final ServerManager serverManager;
-
     public Application() {
       this(Integer.MAX_VALUE);
     }
@@ -18,11 +18,12 @@ public final class Application {
     }
 
     public Application(int port, int maxRequests) {
-        this.serverManager = new ServerManager(port, maxRequests);
+        ServerManager.setPort(port);
+        ServerManager.setMaxRequests(maxRequests);
     }
 
     public void setMaxRequests(int maxRequests) {
-        this.serverManager.setMaxRequests(maxRequests);
+        ServerManager.setMaxRequests(maxRequests);
     }
 
     public void init() throws Exception {
@@ -35,12 +36,12 @@ public final class Application {
         System.out.println("ServBoot: Routes loaded!");
 
         System.out.println("ServBoot: Starting server...");
-        this.serverManager.initServer();
-        System.out.println("ServBoot: Server initialized! " + this.serverManager.getServer().getLocalSocketAddress().toString());
+        ServerManager.initServer();
+        System.out.println("ServBoot: Server initialized! " + ServerManager.getServer().getLocalSocketAddress().toString());
     }
 
-    public void run() {
-        this.serverManager.startServer();
+    public void run() throws InterruptedException, IOException {
+        ServerManager.startServer();
     }
 
     // ============= Container DI ========================//

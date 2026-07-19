@@ -8,6 +8,7 @@ import net.servboot.io.ServBootFile;
 import net.servboot.io.ShortArrayInputStream;
 import net.servboot.request.Request;
 import net.servboot.response.Response;
+import net.servboot.server.ServerManager;
 import net.servboot.utils.io.NameGenerator;
 import net.servboot.utils.json.Json;
 import net.servboot.utils.reflection.ReflectionUtils;
@@ -21,7 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
-public final class ClientRequestTask extends Thread {
+public final class ClientRequestTask extends Thread implements Closeable, Comparable<ClientRequestTask> {
     private Socket client;
     private Request request;
     private Consumer<ClientRequestTask> onFinalize;
@@ -32,6 +33,10 @@ public final class ClientRequestTask extends Thread {
 
     public void setOnFinalize(Consumer<ClientRequestTask> onFinalize) {
         this.onFinalize = onFinalize;
+    }
+
+    public Consumer<ClientRequestTask> getOnFinalize() {
+        return onFinalize;
     }
 
     @Override
@@ -173,10 +178,21 @@ public final class ClientRequestTask extends Thread {
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
-
-            if (this.onFinalize != null) {
-                this.onFinalize.accept(this);
-            }
         }
+    }
+
+    @Override
+    public void close() {
+        ServerManager.getThreadsNames().push(this.getName());
+        ServerManager.removeThread(this);
+
+        if (this.getOnFinalize() != null) {
+            this.getOnFinalize().accept(this);
+        }
+    }
+
+    @Override
+    public int compareTo(ClientRequestTask o) {
+        return this.getName().compareTo(o.getName());
     }
 }

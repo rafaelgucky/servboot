@@ -174,19 +174,37 @@ public class ReflectionUtils {
 
         if (propertyName.contains(".")) {
             String newPropertyName = propertyName.substring(0, 1).toLowerCase() + propertyName.substring(1, propertyName.indexOf("."));
-            Object newObj = obj.getClass().getField(newPropertyName).getType().getDeclaredConstructors()[0].newInstance();
+            Object newObj = Objects.requireNonNullElse(callGetter(obj, newPropertyName), instantiate(obj.getClass().getField(newPropertyName).getType(), false));
             callSetter(obj, newPropertyName, newObj);
             callSetter(newObj, propertyName.substring(newPropertyName.length() + 1), value);
         } else {
-            String setterName =  "set" + propertyName.substring(0, 1).toUpperCase() + propertyName.substring(1);
-            Method method = Arrays.stream(obj.getClass().getMethods()).
-                    filter(m -> m.getName().equals(setterName))
-                    .findFirst()
-                    .orElse(null);
-
-            if (method != null) {
-                    method.invoke(obj, value);
-            }
+            Method method = getMethod(obj, propertyName, "set");
+            method.invoke(obj, value);
         }
+    }
+
+    public static Object callGetter(Object obj, String propertyName)
+            throws IllegalAccessException, InvocationTargetException {
+        if (propertyName.isBlank()) {
+            return null;
+        }
+
+        if (propertyName.contains(".")) {
+            String newPropertyName = propertyName.substring(0, 1).toLowerCase() + propertyName.substring(1, propertyName.indexOf("."));
+            Method method = getMethod(obj, newPropertyName, "get");
+            Object newObj = method.invoke(obj);
+
+            return callGetter(newObj, propertyName.substring(newPropertyName.length() + 1));
+        } else {
+            return getMethod(obj, propertyName, "get").invoke(obj);
+        }
+    }
+
+    public static Method getMethod(Object obj, String propertyName, String prefix) {
+        String methodName = prefix + propertyName.substring(0, 1).toUpperCase() + propertyName.substring(1);
+        return Objects.requireNonNull(Arrays.stream(obj.getClass().getMethods())
+                .filter(m -> m.getName().equals(methodName))
+                .findFirst()
+                .orElse(null), "method \"" + methodName + "\" not found on class" + " [" + obj.getClass().getName() + "]");
     }
 }

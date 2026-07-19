@@ -42,6 +42,7 @@ public final class HeaderBuilder {
                 header.append("\"\r\n");
                 header.append("Connection: close\r\n");
                 header.append("\r\n");
+                header.append("Access-Control-Allow-Origin: *\r\n");
                 break;
             case 1:
                 header.append("HTTP/1.1 ");
@@ -60,6 +61,7 @@ public final class HeaderBuilder {
                 header.append(fileName);
                 header.append("\"\r\n");
                 header.append("Connection: close\r\n");
+                header.append("Access-Control-Allow-Origin: *\r\n");
                 header.append("\r\n");
                 break;
             case 2:
@@ -82,6 +84,7 @@ public final class HeaderBuilder {
                 header.append(fileName);
                 header.append("\"\r\n");
                 header.append("Connection: close\r\n");
+                header.append("Access-Control-Allow-Origin: *\r\n");
                 header.append("\r\n");
                 break;
             case 3:
@@ -101,6 +104,7 @@ public final class HeaderBuilder {
                 header.append(fileName);
                 header.append("\"\r\n");
                 header.append("Connection: close\r\n");
+                header.append("Access-Control-Allow-Origin: *\r\n");
                 header.append("\r\n");
                 break;
             case 4:
@@ -120,6 +124,7 @@ public final class HeaderBuilder {
                 header.append(fileName);
                 header.append("\"\r\n");
                 header.append("Connection: close\r\n");
+                header.append("Access-Control-Allow-Origin: *\r\n");
                 header.append("\r\n");
                 break;
             case 5:
@@ -139,6 +144,7 @@ public final class HeaderBuilder {
                 header.append(fileName);
                 header.append("\"\r\n");
                 header.append("Connection: close\r\n");
+                header.append("Access-Control-Allow-Origin: *\r\n");
                 header.append("\r\n");
                 break;
             case 6:
@@ -152,6 +158,7 @@ public final class HeaderBuilder {
                 header.append(contentLength);
                 header.append("\r\n");
                 header.append("Connection: close\r\n");
+                header.append("Access-Control-Allow-Origin: *\r\n");
                 header.append("\r\n");
                 break;
             case 7:
@@ -171,6 +178,7 @@ public final class HeaderBuilder {
                 header.append(fileName);
                 header.append("\"\r\n");
                 header.append("Connection: close\r\n");
+                header.append("Access-Control-Allow-Origin: *\r\n");
                 header.append("\r\n");
                 break;
             case 8:
@@ -190,6 +198,7 @@ public final class HeaderBuilder {
                 header.append(fileName);
                 header.append("\"\r\n");
                 header.append("Connection: close\r\n");
+                header.append("Access-Control-Allow-Origin: *\r\n");
                 header.append("\r\n");
                 break;
         }

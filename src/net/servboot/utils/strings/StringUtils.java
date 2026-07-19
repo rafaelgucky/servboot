@@ -75,6 +75,14 @@ public class StringUtils {
         return queryParameters;
     }
 
+    public static String removePrefix(String target, String prefix) {
+        return (target.startsWith(prefix)) ? target.substring(prefix.length()) : target;
+    }
+
+    public static String removeSuffix(String target, String suffix) {
+        return (target.endsWith(suffix)) ? target.substring(0, target.length() - suffix.length()) : target;
+    }
+
     public static String reverse(String string) {
         String temp = "";
         for (int i = string.length() - 1; i >= 0; i--) {
@@ -96,11 +104,7 @@ public class StringUtils {
         return count;
     }
 
-    public static String removePrefix(String target, String prefix) {
-        return (target.startsWith(prefix)) ? target.substring(prefix.length()) : target;
-    }
-
-    public static String removeSuffix(String target, String suffix) {
-        return (target.endsWith(suffix)) ? target.substring(0, target.length() - suffix.length()) : target;
+    public static String upperFirst(String str) {
+        return str.substring(0, 1).toUpperCase() + str.substring(1);
     }
 }

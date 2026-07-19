@@ -7,40 +7,39 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.Stack;
-import java.util.function.Consumer;
 
 public final class ServerManager {
-    private ServerSocket server;
-    private final List<Thread> threadsPool = new LinkedList<>();
-    private final Stack<String> threadNames = new Stack<>();
-    private final Queue<ClientRequestTask> pendingThreads = new LinkedList<>();
-    private Consumer<ClientRequestTask> onAcceptClient;
-    private final int port;
-    private int maxRequests;
-    private boolean running = true;
+    private static ServerSocket server;
+    private static final List<ClientRequestTask> threadsPool = new LinkedList<>();
+    private static final Stack<String> threadNames = new Stack<>();
+    private static int port = 5000;
+    private static int maxRequests = Integer.MAX_VALUE;
+    private static boolean running = true;
 
-    public ServerManager(int port, int maxRequests) {
-        this.port = port;
-        this.maxRequests = maxRequests;
-    }
-
-    public ServerSocket getServer() {
+    public static ServerSocket getServer() {
         return server;
     }
 
-    public void setMaxRequests(int maxRequests) {
-        this.maxRequests = maxRequests;
+    public static List<ClientRequestTask> getThreadsPool() {
+        return threadsPool;
     }
 
-    public void setOnAcceptClient(Consumer<ClientRequestTask> onAcceptClient) {
-        this.onAcceptClient = onAcceptClient;
+    public static Stack<String> getThreadsNames() {
+        return threadNames;
     }
 
-    public boolean initServer(){
+    public static void setPort(int p) {
+        port = p;
+    }
+
+    public static void setMaxRequests(int mr) {
+        maxRequests = mr;
+    }
+
+    public static boolean initServer(){
         try{
-            this.server = new ServerSocket(port);
+            server = new ServerSocket(port);
             return true;
         } catch(IOException ex){
             return false;
@@ -51,70 +50,44 @@ public final class ServerManager {
         running = false;
     }
 
-    private ClientRequestTask getThread() throws InterruptedException {
-        synchronized (this.threadsPool) {
-            while (this.threadsPool.size() >= this.maxRequests) {
-                this.threadsPool.wait();
+    public static ClientRequestTask getThread() throws InterruptedException {
+        synchronized (threadsPool) {
+            while (threadsPool.size() >= maxRequests) {
+                threadsPool.wait();
             }
 
             ClientRequestTask thread = new ClientRequestTask();
-            thread.setName(this.getThreadName());
-            this.threadsPool.add(thread);
+            thread.setName(getThreadName());
+            threadsPool.add(thread);
 
             return thread;
         }
     }
 
-    private void removeThread(ClientRequestTask thread) {
-        synchronized (this.threadsPool) {
-            this.threadsPool.remove(thread);
-            this.threadsPool.notify();
+    public static void removeThread(ClientRequestTask thread) {
+        synchronized (threadsPool) {
+            threadsPool.remove(thread);
+            threadsPool.notify();
         }
     }
 
-    private String getThreadName() {
-        synchronized (this.threadNames) {
+    public static String getThreadName() {
+        synchronized (threadNames) {
             if (!threadNames.empty()) {
-                return this.threadNames.pop();
+                return threadNames.pop();
             }
 
             return "thread_" + ThreadManager.getNext();
         }
     }
 
-    private void startPendingThreads() {
-        synchronized (this.pendingThreads) {
-            if (!pendingThreads.isEmpty()) {
-                this.pendingThreads.poll().start();
-            }
-        }
-    }
-
-    public void startServer() {
-        try{
-            while(running) {
+    public static void startServer() throws InterruptedException, IOException {
+        while(running) {
+            try (ClientRequestTask thread = getThread()) {
                 Socket client = server.accept();
-                ClientRequestTask thread = this.getThread();
                 thread.setClient(client);
-
-                thread.setOnFinalize(crt -> {
-                    this.threadNames.push(crt.getName());
-                    this.removeThread(crt);
-                    this.startPendingThreads();
-
-                    if (this.onAcceptClient != null) {
-                        this.onAcceptClient.accept(crt);
-                    }
-                });
-
-                if (this.threadsPool.size() >= this.maxRequests) {
-                    this.pendingThreads.add(thread);
-                } else {
-                    thread.start();
-                }
+                thread.start();
             }
-        } catch (Exception ignore) {
-            ignore.printStackTrace();
         }
     }
 }

@@ -25,10 +25,6 @@ public class ColumnUtils {
             ForeignKey foreign;
 
             if ((foreign = newField.getAnnotation(ForeignKey.class)) != null) {
-                if (!foreign.column().isEmpty()) {
-                    return foreign.column();
-                }
-
                 Set<Field> keys = getKeys(newField.getType());
 
                 if (keys.size() == 1) {
@@ -36,7 +32,7 @@ public class ColumnUtils {
                 }
             }
 
-            return ColumnUtils.getDataBaseName(ReflectionUtils.getField(entityClass, newFieldName).getType(), fieldName.substring(fieldName.indexOf(".") + 1));
+            return getDataBaseName(ReflectionUtils.getField(entityClass, newFieldName).getType(), fieldName.substring(fieldName.indexOf(".") + 1));
         }
 
         field = ReflectionUtils.getField(entityClass, fieldName);
