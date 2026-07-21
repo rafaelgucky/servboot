@@ -161,38 +161,42 @@ public final class ClientRequestTask extends Thread implements Closeable, Compar
         } catch (Exception ex) {
             ex.printStackTrace();
         } finally {
-
-            try{
-                client.getOutputStream().close();
-            } catch (IOException ignore) { }
-
-            try{
-                if (this.request != null) {
-                    Set<String> keys = request.getFiles().keySet();
-                    for(String key : keys) {
-                        for(File file : request.getFiles().get(key)) {
-                            Files.deleteIfExists(file.toPath());
-                        }
-                    }
-                }
-            } catch (IOException ex) {
-                ex.printStackTrace();
+            try {
+                this.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
         }
     }
 
     @Override
-    public void close() {
-        ServerManager.getThreadsNames().push(this.getName());
-        ServerManager.removeThread(this);
+    public void close() throws IOException {
+        client.getOutputStream().close();
+        this.cleanFiles();
 
         if (this.getOnFinalize() != null) {
             this.getOnFinalize().accept(this);
         }
+
+        ServerManager.getThreadsNames().push(this.getName());
+        ServerManager.removeThread(this);
+
+        this.interrupt();
     }
 
     @Override
     public int compareTo(ClientRequestTask o) {
         return this.getName().compareTo(o.getName());
+    }
+
+    public void cleanFiles() throws IOException {
+        if (this.request != null) {
+            Set<String> keys = request.getFiles().keySet();
+            for(String key : keys) {
+                for(File file : request.getFiles().get(key)) {
+                    Files.deleteIfExists(file.toPath());
+                }
+            }
+        }
     }
 }

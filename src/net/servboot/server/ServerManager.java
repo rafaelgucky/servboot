@@ -52,6 +52,14 @@ public final class ServerManager {
 
     public static ClientRequestTask getThread() throws InterruptedException {
         synchronized (threadsPool) {
+            long freeMemory = Runtime.getRuntime().freeMemory();
+            long totalMemory = Runtime.getRuntime().totalMemory();
+            long maxMemory = Runtime.getRuntime().maxMemory();
+
+            if (totalMemory * 100 / maxMemory >= 90 && freeMemory / 1024 / 1024 < 50) {
+                System.gc();
+            }
+
             while (threadsPool.size() >= maxRequests) {
                 threadsPool.wait();
             }
@@ -67,7 +75,7 @@ public final class ServerManager {
     public static void removeThread(ClientRequestTask thread) {
         synchronized (threadsPool) {
             threadsPool.remove(thread);
-            threadsPool.notify();
+            threadsPool.notifyAll();
         }
     }
 
@@ -83,11 +91,10 @@ public final class ServerManager {
 
     public static void startServer() throws InterruptedException, IOException {
         while(running) {
-            try (ClientRequestTask thread = getThread()) {
-                Socket client = server.accept();
-                thread.setClient(client);
-                thread.start();
-            }
+            ClientRequestTask thread = getThread();
+            Socket client = server.accept();
+            thread.setClient(client);
+            thread.start();
         }
     }
 }

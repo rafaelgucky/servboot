@@ -131,15 +131,9 @@ public class OrmReflectionUtils {
 
     public static <T> void fillEntityFromResultSet(T entity, ResultSet resultSet)
             throws SQLException, NoSuchFieldException,IllegalAccessException, InvocationTargetException, InstantiationException {
-        if (!resultSet.next()) return;
-
         List<String> columns = getQueriedColumns(resultSet);
 
-        do {
-            for (String column : columns) {
-                ReflectionUtils.callSetter(entity, column, resultSet.getObject(column));
-            }
-        } while (resultSet.next());
+        fillEntityFromResultSet(entity, resultSet, columns);
     }
 
     public static <T> List<T> getAllEntitiesFromResultSet(Class<T> entityClass, ResultSet resultSet)
@@ -153,16 +147,22 @@ public class OrmReflectionUtils {
 
         do {
             T entity = Objects.requireNonNull(ReflectionUtils.instantiate(entityClass, false));
-            for (String column : columns) {
-                Object value = resultSet.getObject(column);
-                if (value != null) {
-                    ReflectionUtils.callSetter(entity, column, value);
-                }
-            }
+            fillEntityFromResultSet(entity, resultSet, columns);
             entities.add(entity);
         } while (resultSet.next());
 
         return entities;
+    }
+
+    public static <T> void fillEntityFromResultSet(T entity, ResultSet resultSet, List<String> columns)
+        throws SQLException, NoSuchFieldException,IllegalAccessException, InvocationTargetException, InstantiationException {
+        for (String column : columns) {
+            Object value = resultSet.getObject(column);
+
+            if (value != null) {
+                ReflectionUtils.callSetter(entity, column, resultSet.getObject(column));
+            }
+        }
     }
 
     public static List<String> getQueriedColumns(ResultSet resultSet) {

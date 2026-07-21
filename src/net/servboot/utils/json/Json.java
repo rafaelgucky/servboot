@@ -1,5 +1,6 @@
 package net.servboot.utils.json;
 
+import net.servboot.orm.ModelIterator;
 import net.servboot.utils.reflection.ReflectionUtils;
 
 import java.lang.reflect.Array;
@@ -14,7 +15,9 @@ public class Json {
     }
 
     public static String encode(Object obj) throws Exception {
-        if(obj instanceof Collection<?>){
+        if (obj instanceof ModelIterator) {
+            return encode((ModelIterator<?>) obj, Object.class);
+        } else if(obj instanceof Collection<?>){
             return encode((List<?>) obj);
         } else if(obj.getClass().isArray()){
             Class<?> componentType;
@@ -37,6 +40,22 @@ public class Json {
     public static <T> String encode(List<T> objects) throws Exception {
         return encode(objects.toArray(), Object.class);
     }
+
+    private static <T> String encode(ModelIterator<T> modelIterator, Class<?> superClass) throws IllegalAccessException {
+        StringBuilder json = new StringBuilder("[");
+
+        while (modelIterator.hasNext()) {
+            T obj = modelIterator.next();
+
+            json.append(encode(obj, superClass, ""));
+            if(!modelIterator.isLast()){
+                json.append(",");
+            }
+        }
+        json.append("]");
+        return json.toString();
+    }
+
     private static <T> String encode(T[] objects, Class<?> superClass) throws IllegalAccessException {
         StringBuilder json = new StringBuilder("[");
         for(int i = 0; i < objects.length; i++){

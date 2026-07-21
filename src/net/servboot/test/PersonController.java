@@ -8,6 +8,7 @@ import net.servboot.context.DataBaseContext;
 import net.servboot.controllers.ControllerBase;
 import net.servboot.database.ConnectionManager;
 import net.servboot.database.ServBootQuery;
+import net.servboot.orm.ModelIterator;
 import net.servboot.response.Response;
 import net.servboot.sets.DataSet;
 import net.servboot.utils.reflection.ColumnUtils;
@@ -43,7 +44,8 @@ public class PersonController extends ControllerBase {
     public Response findAll() throws Exception {
         DataSet<Person> dt = DataBaseContext.personDataSet.clone();
         ResultSet rs = ConnectionManager.getConnection().createStatement().executeQuery(dt.getSelectCommand());
-        return ok(OrmReflectionUtils.getAllEntitiesFromResultSet(Person.class, rs));
+//        return ok(OrmReflectionUtils.getAllEntitiesFromResultSet(Person.class, rs));
+        return ok(new ModelIterator<>(Person.class, rs));
     }
 
     @GET("find/{id}")

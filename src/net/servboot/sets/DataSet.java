@@ -66,6 +66,8 @@ public class DataSet<T> extends LinkedList<T> implements Cloneable {
             }
         }
 
+        //command.append(" limit 100");
+
         return command.toString();
     }
 

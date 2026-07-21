@@ -38,21 +38,29 @@ public class ConnectionManager {
     }
 
     public static Connection getConnection() throws InterruptedException {
-        synchronized (pool) {
-            while (pool.isEmpty()) {
-                pool.wait();
+        Connection connection;
+
+        if (connections.containsKey(Thread.currentThread().getName())) {
+            connection = connections.get(Thread.currentThread().getName());
+        } else {
+            synchronized (pool) {
+                while (pool.isEmpty()) {
+                    pool.wait();
+                }
+
+                connection = pool.pop();
+                String x = Thread.currentThread().getName();
+                connections.put(x, connection);
             }
 
-            Connection c = pool.pop();
-            String x = Thread.currentThread().getName();
-            connections.put(x, c);
-
-            if (Thread.currentThread() instanceof ClientRequestTask thread) {
-                thread.setOnFinalize(t -> addConnection(c));
+            if (Thread.currentThread() instanceof ClientRequestTask) {
+                ((ClientRequestTask) Thread.currentThread()).setOnFinalize(t -> {
+                    addConnection(connections.remove(t.getName()));
+                });
             }
-
-            return c;
         }
+
+        return connection;
     }
 
     public static void addConnection(Connection conn) {
