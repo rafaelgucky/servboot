@@ -69,4 +69,17 @@ public class Join {
 
         return command.toString();
     }
+
+    public static String getCommand(List<Join> joins) {
+        if (joins == null || joins.isEmpty()) return " ";
+
+        StringBuilder command = new StringBuilder();
+
+        for (Join join : joins) {
+            command.append(join.getCommand());
+            command.append("\n ");
+        }
+
+        return command.toString();
+    }
 }

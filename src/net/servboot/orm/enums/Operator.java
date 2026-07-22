@@ -14,7 +14,9 @@ public enum Operator {
     LIKE(" like "),
     NOT_LIKE(" not like "),
     IN(" in"),
-    NOT_IN(" not in ");
+    NOT_IN(" not in "),
+    DESC(" desc "),
+    ASC(" asc ");
 
     private final String operator;
 

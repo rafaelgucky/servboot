@@ -2,6 +2,8 @@ package net.servboot.orm;
 
 import net.servboot.orm.enums.Operator;
 
+import java.util.List;
+
 public class Condition {
     private String column;
     private Operator operator;
@@ -66,5 +68,18 @@ public class Condition {
 
     public String getCommand() {
         return " " + (this.getSQLOperator() != null ? this.getSQLOperator().getOperator() : "") + this.getColumn() + this.getOperator().getOperator() + "'" + this.getValue().toString() + "' ";
+    }
+
+    public static String getCommand(List<Condition> conditions) {
+        if (conditions == null || conditions.isEmpty()) return " ";
+
+        StringBuilder command = new StringBuilder();
+
+        command.append(" WHERE ");
+        for (Condition condition : conditions) {
+            command.append(condition.getCommand());
+        }
+
+        return command.toString();
     }
 }

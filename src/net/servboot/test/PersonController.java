@@ -7,16 +7,15 @@ import net.servboot.annotations.Path;
 import net.servboot.context.DataBaseContext;
 import net.servboot.controllers.ControllerBase;
 import net.servboot.database.ConnectionManager;
-import net.servboot.database.ServBootQuery;
+import net.servboot.orm.DataSet;
 import net.servboot.orm.ModelIterator;
+import net.servboot.orm.ServBootQuery;
 import net.servboot.response.Response;
-import net.servboot.sets.DataSet;
 import net.servboot.utils.reflection.ColumnUtils;
 import net.servboot.utils.reflection.orm.OrmReflectionUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.time.Instant;
 import java.util.HashMap;
@@ -39,13 +38,18 @@ public class PersonController extends ControllerBase {
         return ok(ColumnUtils.getDataBaseName(Person.class, "Pet.id"));
     }
 
-    @GET("all")
+    @GET()
     @Path("all")
     public Response findAll() throws Exception {
         DataSet<Person> dt = DataBaseContext.personDataSet.clone();
-        ResultSet rs = ConnectionManager.getConnection().createStatement().executeQuery(dt.getSelectCommand());
+        dt.setLimit(10);
+        dt.getSelect().removeColumn("Pet.id");
+        ResultSet rs = ConnectionManager.getConnection().createStatement().executeQuery(dt.getCommand());
+
+        System.out.println(dt.getCommand());
 //        return ok(OrmReflectionUtils.getAllEntitiesFromResultSet(Person.class, rs));
         return ok(new ModelIterator<>(Person.class, rs));
+//        return ok();
     }
 
     @GET("find/{id}")

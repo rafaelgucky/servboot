@@ -3,12 +3,14 @@ package net.servboot.orm;
 import net.servboot.utils.reflection.ReflectionUtils;
 import net.servboot.utils.reflection.orm.OrmReflectionUtils;
 import java.lang.reflect.Field;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 public class Select <T> {
     private final Class<T> entityClass;
+    private List<ColumnMap> columns;
 
     public Select(Class<T> entityClass) {
         this.entityClass = entityClass;
@@ -23,6 +25,18 @@ public class Select <T> {
     }
 
     public List<ColumnMap> getColumns(Class<?> entityClass, String dbPrefix, String entityPrefix) {
+        if (this.columns == null) {
+            this.columns = new LinkedList<>();
+        }
+
+        if (this.columns.isEmpty()) {
+            this.columns = this.generateColumns(entityClass, dbPrefix, entityPrefix);
+        }
+
+        return this.columns;
+    }
+
+    protected final List<ColumnMap> generateColumns(Class<?> entityClass, String dbPrefix, String entityPrefix) {
         Set<Field> fields = ReflectionUtils.getAllFields(entityClass);
         List<ColumnMap> columns = new LinkedList<>();
 
@@ -32,13 +46,17 @@ public class Select <T> {
 
         for (Field field : fields) {
             if (OrmReflectionUtils.isForeign(field)) {
-                columns.addAll(this.getColumns(field.getType(), OrmReflectionUtils.getTableName(field.getType()) + ".",  entityPrefix + field.getType().getSimpleName() + "."));
+                columns.addAll(this.generateColumns(field.getType(), OrmReflectionUtils.getTableName(field.getType()) + ".",  entityPrefix + field.getType().getSimpleName() + "."));
             } else if (!ReflectionUtils.isTransient(field)) {
                 columns.add(new ColumnMap(dbPrefix + OrmReflectionUtils.getDbFieldName(field), entityPrefix + field.getName()));
             }
         }
 
         return columns;
+    }
+
+    public boolean removeColumn(String entityName) {
+        return this.getColumns().removeIf(column -> column.getEntityFieldName().equalsIgnoreCase(entityName));
     }
 
 

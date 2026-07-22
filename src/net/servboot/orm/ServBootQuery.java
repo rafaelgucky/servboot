@@ -1,7 +1,5 @@
-package net.servboot.database;
+package net.servboot.orm;
 
-import net.servboot.orm.ColumnMap;
-import net.servboot.orm.ServBootFunction;
 import net.servboot.utils.reflection.ColumnUtils;
 import net.servboot.utils.reflection.ReflectionUtils;
 import net.servboot.utils.reflection.orm.OrmReflectionUtils;
