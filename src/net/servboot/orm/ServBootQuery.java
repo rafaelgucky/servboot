@@ -51,7 +51,7 @@ public class ServBootQuery <T> {
         }
     }
 
-    public ServBootQuery<T> map(String[] columns) {
+    public ServBootQuery<T> map(String[] columns) throws Exception {
         this.columns.clear();
         for (String column : columns) {
             this.columns.add(ColumnUtils.getDataBaseName(this.entityClass, column));

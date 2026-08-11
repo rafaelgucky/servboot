@@ -3,12 +3,12 @@ package net.servboot.orm;
 import net.servboot.utils.reflection.ReflectionUtils;
 import net.servboot.utils.reflection.orm.OrmReflectionUtils;
 import java.lang.reflect.Field;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 public class Select <T> {
+    private String command;
     private final Class<T> entityClass;
     private List<ColumnMap> columns;
 
@@ -36,6 +36,10 @@ public class Select <T> {
         return this.columns;
     }
 
+    public void setColumns(List<ColumnMap> columns) {
+        this.columns = columns;
+    }
+
     protected final List<ColumnMap> generateColumns(Class<?> entityClass, String dbPrefix, String entityPrefix) {
         Set<Field> fields = ReflectionUtils.getAllFields(entityClass);
         List<ColumnMap> columns = new LinkedList<>();
@@ -59,8 +63,16 @@ public class Select <T> {
         return this.getColumns().removeIf(column -> column.getEntityFieldName().equalsIgnoreCase(entityName));
     }
 
+    public void setCommand(String command) {
+        this.command = command;
+    }
+
 
     public String getCommand() {
+        if (this.command != null) {
+            return this.command;
+        }
+
         List<ColumnMap> columns = this.getColumns();
         StringBuilder command = new StringBuilder();
 

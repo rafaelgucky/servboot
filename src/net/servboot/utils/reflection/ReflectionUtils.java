@@ -1,8 +1,8 @@
 package net.servboot.utils.reflection;
 
 import net.servboot.annotations.*;
-import net.servboot.annotations.enums.EntityLoad;
 import net.servboot.dependency.DependencyInjectionContainer;
+import net.servboot.utils.strings.StringUtils;
 import java.lang.reflect.*;
 import java.util.*;
 
@@ -60,82 +60,15 @@ public class ReflectionUtils {
         return fields;
     }
 
-    public static Field getField(Class<?> clazz, String fieldName) {
-        return getAllFields(clazz).stream()
-                .filter(f -> f.getName().equalsIgnoreCase(fieldName))
-                .findFirst().orElse(null);
-    }
-
-    public static void setField(Object obj, Field field, Object value){
-        try{
-            switch (field.getType().getSimpleName()) {
-                case "boolean":
-                    if(value != null){
-                        field.setBoolean(obj, (boolean) value);
-                    } else {
-                        field.setBoolean(obj, false);
-                    }
-                    break;
-                case "char":
-                    if(value != null){
-                        field.setChar(obj, (char) value);
-                    } else {
-                        field.setChar(obj, (char) 0x0);
-                    }
-                    break;
-                case "byte":
-                    if(value != null){
-                        field.setByte(obj, (byte) value);
-                    } else {
-                        field.setByte(obj, (byte) 0);
-                    }
-                    break;
-                case "short":
-                    if(value != null){
-                        field.setShort(obj, (short) value);
-                    } else {
-                        field.setShort(obj, (short) 0);
-                    }
-                    break;
-                case "int":
-                    if(value != null){
-                        field.setInt(obj, (int) value);
-                    } else {
-                        field.setInt(obj, 0);
-                    }
-                    break;
-                case "long":
-                    if(value != null){
-                        field.setLong(obj, (long) value);
-                    } else {
-                        field.setLong(obj, 0L);
-                    }
-                    break;
-                case "float":
-                    if(value != null){
-                        field.setFloat(obj, (float) value);
-                    } else {
-                        field.setFloat(obj, 0F);
-                    }
-                    break;
-                case "double":
-                    if(value != null){
-                        field.setDouble(obj, (double) value);
-                    } else {
-                        field.setDouble(obj, 0D);
-                    }
-                    break;
-                default:
-                    field.set(obj, field.getType().cast(value));
-            }
-        } catch(IllegalAccessException | ClassCastException e){
-            throw new IllegalStateException(e.getMessage());
-        }
+    public static <T> T instantiate(Class<T> clazz)
+            throws IllegalAccessException, InvocationTargetException, InstantiationException{
+        return instantiate(clazz, false);
     }
 
 
     @SuppressWarnings("unchecked")
-    public static <T> T instantiate(Class<T> clazz, boolean fromDIContainer) throws IllegalAccessException, InvocationTargetException, InstantiationException {
+    public static <T> T instantiate(Class<T> clazz, boolean fromDIContainer)
+            throws IllegalAccessException, InvocationTargetException, InstantiationException {
         Constructor<?>[] constructs = clazz.getDeclaredConstructors();
         Parameter[] parameters;
         Object[] instances;
@@ -183,7 +116,7 @@ public class ReflectionUtils {
         }
     }
 
-    public static Object callGetter(Object obj, String propertyName)
+    public static <T> T callGetter(Object obj, String propertyName)
             throws IllegalAccessException, InvocationTargetException {
         if (propertyName.isBlank()) {
             return null;
@@ -196,7 +129,7 @@ public class ReflectionUtils {
 
             return callGetter(newObj, propertyName.substring(newPropertyName.length() + 1));
         } else {
-            return getMethod(obj, propertyName, "get").invoke(obj);
+            return (T) getMethod(obj, propertyName, "get").invoke(obj);
         }
     }
 
@@ -206,5 +139,25 @@ public class ReflectionUtils {
                 .filter(m -> m.getName().equals(methodName))
                 .findFirst()
                 .orElse(null), "method \"" + methodName + "\" not found on class" + " [" + obj.getClass().getName() + "]");
+    }
+
+    public static Field getField(Class<?> clazz, String fieldName) throws NoSuchFieldException {
+        return getField(clazz, fieldName, Integer.MAX_VALUE);
+    }
+
+    public static Field getField(Class<?> clazz, String fieldName, int searchLevel) throws NoSuchFieldException {
+        if (clazz == null || fieldName.isBlank()) return null;
+
+        if (fieldName.contains(".")) {
+            String newFieldName = StringUtils.lowerFirst(fieldName.substring(0, fieldName.indexOf('.')));
+
+            if (searchLevel > 1) {
+                return getField(clazz.getField(newFieldName).getType(), fieldName.substring(fieldName.indexOf('.') + 1), --searchLevel);
+            }
+
+            return clazz.getField(newFieldName);
+        }
+
+        return clazz.getField(fieldName);
     }
 }

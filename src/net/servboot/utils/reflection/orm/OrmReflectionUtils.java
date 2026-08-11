@@ -1,10 +1,7 @@
 package net.servboot.utils.reflection.orm;
 
 import com.mysql.cj.jdbc.result.ResultSetImpl;
-import net.servboot.annotations.Column;
-import net.servboot.annotations.ForeignKey;
-import net.servboot.annotations.Key;
-import net.servboot.annotations.Table;
+import net.servboot.annotations.*;
 import net.servboot.annotations.enums.EntityLoad;
 import net.servboot.orm.Condition;
 import net.servboot.orm.Join;
@@ -12,7 +9,6 @@ import net.servboot.orm.enums.JoinType;
 import net.servboot.orm.enums.Operator;
 import net.servboot.utils.reflection.ReflectionUtils;
 import net.servboot.utils.strings.StringUtils;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.ResultSet;
@@ -105,7 +101,7 @@ public class OrmReflectionUtils {
     }
 
     public static boolean isForeign(Field field) {
-        return field.getAnnotation(ForeignKey.class) != null;
+        return field.getAnnotation(OneToMany.class) != null || field.getAnnotation(OneToOne.class) != null;
     }
 
     public static List<Join> getJoins(Class<?> clazz) {
@@ -119,8 +115,19 @@ public class OrmReflectionUtils {
     }
 
     public static Join generateJoin(Class<?> parent, Field child) {
-        ForeignKey foreignKey = Objects.requireNonNull(child.getAnnotation(ForeignKey.class));
-        Join join = new Join(foreignKey.notNull() ? JoinType.INNER_JOIN : JoinType.LEFT_JOIN, getTableName(getForeignClazz(child)));
+        Join join = null;
+
+        OneToMany oneToMany = child.getAnnotation(OneToMany.class);
+        if (oneToMany != null) {
+            join = new Join(JoinType.LEFT_JOIN, getTableName(oneToMany.targetClass()));
+        } else {
+            OneToOne oneToOne = child.getAnnotation(OneToOne.class);
+            if (oneToOne != null) {
+                join = new Join(JoinType.LEFT_JOIN, getTableName(oneToOne.targetClass() != null ?  oneToOne.targetClass() : child.getType()));
+            }
+        }
+
+        Objects.requireNonNull(join);
 
         for (Field field : getKeys(child.getType())) {
             join.addCondition(new Condition( getTableName(parent) + "." + child.getType().getSimpleName().toLowerCase() + StringUtils.upperFirst(field.getName()), Operator.EQUAL, getTableName(child.getType()) + "." + getDbFieldName(field)));
@@ -129,40 +136,116 @@ public class OrmReflectionUtils {
         return join;
     }
 
-    public static <T> void fillEntityFromResultSet(T entity, ResultSet resultSet)
-            throws SQLException, NoSuchFieldException,IllegalAccessException, InvocationTargetException, InstantiationException {
-        List<String> columns = getQueriedColumns(resultSet);
+    public static <T> Field getFieldByJoinName(Class<T> clazz, String joinName) {
+        Set<Field> fields = ReflectionUtils.getAllFields(clazz);
 
-        fillEntityFromResultSet(entity, resultSet, columns);
+        for (Field field : fields) {
+            OneToMany oneToMany = field.getAnnotation(OneToMany.class);
+            if (oneToMany != null && oneToMany.targetClass().getSimpleName().equalsIgnoreCase(joinName)) return field;
+        }
+
+        return null;
     }
 
-    public static <T> List<T> getAllEntitiesFromResultSet(Class<T> entityClass, ResultSet resultSet)
+    public static <T> List<T> getAllEntitiesByResultSet(Class<T> entityClass, ResultSet resultSet)
             throws SQLException, NoSuchFieldException, IllegalAccessException, InstantiationException, InvocationTargetException {
-        List<T> entities = new LinkedList<>();
-        List<String> columns;
+        LinkedList<T> entities = new LinkedList<>();
 
-        if (!resultSet.next()) return entities;
-
-        columns = getQueriedColumns(resultSet);
-
-        do {
-            T entity = Objects.requireNonNull(ReflectionUtils.instantiate(entityClass, false));
-            fillEntityFromResultSet(entity, resultSet, columns);
+        while (resultSet.next()) {
+            T entity = ReflectionUtils.instantiate(entityClass);
+            fillEntityFromResultSet(entity, resultSet);
             entities.add(entity);
-        } while (resultSet.next());
+        }
 
         return entities;
     }
 
+    public static <T> void fillEntityFromResultSet(T entity, ResultSet resultSet)
+        throws SQLException, NoSuchFieldException,IllegalAccessException, InvocationTargetException, InstantiationException {
+        fillEntityFromResultSet(entity, resultSet, getQueriedColumns(resultSet));
+    }
+
     public static <T> void fillEntityFromResultSet(T entity, ResultSet resultSet, List<String> columns)
         throws SQLException, NoSuchFieldException,IllegalAccessException, InvocationTargetException, InstantiationException {
-        for (String column : columns) {
-            Object value = resultSet.getObject(column);
+        fillEntityFromResultSet(entity, resultSet, columns, "");
+    }
 
-            if (value != null) {
-                ReflectionUtils.callSetter(entity, column, resultSet.getObject(column));
+    public static <T> void fillEntityFromResultSet(T entity, ResultSet resultSet, List<String> columns, String removePrefix)
+            throws SQLException, NoSuchFieldException, IllegalAccessException, InvocationTargetException, InstantiationException {
+        boolean hasOneToMany = false;
+
+        for (int i = 0; i < columns.size(); i++) {
+            String column = columns.get(i);
+
+            if (removePrefix.isBlank() || column.startsWith(removePrefix)) {
+                Object value = resultSet.getObject(column);
+
+                if  (value == null) {
+                    continue;
+                }
+
+                // Se a propriedade não existir, é uma FK
+                try {
+                    ReflectionUtils.getField(entity.getClass(), column);
+                    ReflectionUtils.callSetter(entity, StringUtils.removePrefix(column, removePrefix), value);
+                } catch (NoSuchFieldException e) {
+                    Field field = Objects.requireNonNull(getFieldByJoinName(entity.getClass(), column.substring(0, column.indexOf("."))));
+                    Object fkEntity = null;
+                    String rmPrefix = "";
+                    hasOneToMany = true;
+
+                    OneToMany oneToMany = field.getAnnotation(OneToMany.class);
+                    if (oneToMany != null) {
+                        rmPrefix = oneToMany.targetClass().getSimpleName() + ".";
+                        fkEntity = ReflectionUtils.instantiate(oneToMany.targetClass(), false);
+                    }
+
+                    fillEntityFromResultSet(fkEntity, resultSet, columns, rmPrefix);
+
+                    Collection<Object> c = ReflectionUtils.callGetter(entity, field.getName());
+                    if (c != null) {
+                        c.add(fkEntity);
+                    } else {
+                        LinkedList<Object> list = new LinkedList<>();
+                        list.add(fkEntity);
+                        ReflectionUtils.callSetter(entity, field.getName(), list);
+                    }
+
+                    while (i < columns.size() && columns.get(i).toLowerCase().startsWith(removePrefix.toLowerCase())) {
+                        i++;
+                    }
+                }
             }
         }
+
+        if (hasOneToMany) {
+            if (resultSet.next()) {
+                if (compareKeys(entity, resultSet)) {
+                    fillEntityFromResultSet(entity, resultSet, columns, removePrefix);
+                }
+            } else {
+                resultSet.previous();
+            }
+        }
+    }
+
+    public static <T> boolean compareKeys(T entity, ResultSet resultSet)
+        throws SQLException, IllegalAccessException, InvocationTargetException {
+        Set<Field> keys = getKeys(entity.getClass());
+
+        if (true) {
+            throw new RuntimeException("Ajustar: o nome da coluna que virá do banco nem sempre será getDbFieldName(field)");
+        }
+
+        for (Field field : keys) {
+            String columnName = getDbFieldName(field);
+
+            if (ReflectionUtils.callGetter(entity, field.getName()) != resultSet.getObject(columnName)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public static List<String> getQueriedColumns(ResultSet resultSet) {

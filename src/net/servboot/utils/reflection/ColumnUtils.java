@@ -15,7 +15,8 @@ public class ColumnUtils {
         return annotation != null;
     }
 
-    public static String getDataBaseName(Class<?> entityClass, String fieldName) {
+    public static String getDataBaseName(Class<?> entityClass, String fieldName)
+        throws NoSuchFieldException {
         Field field;
         Column column;
 

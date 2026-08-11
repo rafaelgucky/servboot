@@ -1,10 +1,9 @@
 package net.servboot.test;
 
-import net.servboot.annotations.Column;
-import net.servboot.annotations.ForeignKey;
-import net.servboot.annotations.Key;
-import net.servboot.annotations.Table;
+import net.servboot.annotations.*;
 import net.servboot.annotations.enums.EntityLoad;
+
+import java.util.List;
 
 @Table("person")
 public class Person {
@@ -16,8 +15,10 @@ public class Person {
     public String lastName;
     public Integer age;
 
-    @ForeignKey(entity = Pet.class)
-    public Pet pet;
+//    @ForeignKey(entity = Pet.class)
+
+    @OneToMany(targetClass = Pet.class)
+    public List<Pet> pets;
 
     public int getId() {
         return id;
@@ -51,12 +52,12 @@ public class Person {
         this.age = age;
     }
 
-    public Pet getPet() {
-        return pet;
+    public List<Pet> getPets() {
+        return pets;
     }
 
-    public void setPet(Pet pet) {
-        this.pet = pet;
+    public void setPets(List<Pet> pets) {
+        this.pets = pets;
     }
 
     @Override
@@ -66,7 +67,6 @@ public class Person {
                 ", name='" + name + '\'' +
                 ", lastName='" + lastName + '\'' +
                 ", age=" + age +
-                ", pet=" + pet +
                 '}';
     }
 }

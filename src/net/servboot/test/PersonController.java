@@ -7,9 +7,11 @@ import net.servboot.annotations.Path;
 import net.servboot.context.DataBaseContext;
 import net.servboot.controllers.ControllerBase;
 import net.servboot.database.ConnectionManager;
+import net.servboot.orm.Condition;
 import net.servboot.orm.DataSet;
 import net.servboot.orm.ModelIterator;
 import net.servboot.orm.ServBootQuery;
+import net.servboot.orm.enums.Operator;
 import net.servboot.response.Response;
 import net.servboot.utils.reflection.ColumnUtils;
 import net.servboot.utils.reflection.orm.OrmReflectionUtils;
@@ -31,9 +33,9 @@ public class PersonController extends ControllerBase {
 
     @GET("test")
     @Path("test")
-    public Response test() {
+    public Response test() throws Exception {
         ServBootQuery<Person> sbq = new ServBootQuery<>(Person.class);
-        ServBootQuery<Pet> sql2 = sbq.map(Person::getPet);
+//        ServBootQuery<Pet> sql2 = sbq.map(Person::getPet);
 //        List<String> columns = sbq.getColumns();
         return ok(ColumnUtils.getDataBaseName(Person.class, "Pet.id"));
     }
@@ -54,8 +56,14 @@ public class PersonController extends ControllerBase {
 
     @GET("find/{id}")
     @Path("find/{id}")
-    public Response find(int id){
-        return ok();
+    public Response find(int id) throws Exception {
+        DataSet<Person> dt = DataBaseContext.personDataSet.clone();
+        dt.addCondition(new Condition("person.name", Operator.LIKE, "%Nicanor%"));
+
+        ResultSet rs = ConnectionManager.getConnection().createStatement().executeQuery(dt.getCommand());
+//        return ok(OrmReflectionUtils.getAllEntitiesFromResultSet(Person.class, rs));
+        return ok(new ModelIterator<>(Person.class, rs));
+//        return ok();
     }
 
     @GET("find/index/{index}")
@@ -64,11 +72,20 @@ public class PersonController extends ControllerBase {
         return ok();
     }
 
-    @GET("count")
+    @GET()
     @Path("count")
     public Response count() throws Exception {
+        DataSet<Person> dt = DataBaseContext.personDataSet.clone();
+        ResultSet rs = ConnectionManager.getConnection().createStatement().executeQuery(dt.getCommand());
+        ModelIterator<Person> modelIterator = new ModelIterator<>(Person.class, rs);
         Map<String, Object> map = new HashMap<>();
-        map.put("count", 0);
+
+        int count = 0;
+        for (; modelIterator.hasNext(); ) {
+            count++;
+        }
+
+        map.put("count", count);
         map.put("utc", Instant.now().toString());
         return ok(map);
     }
