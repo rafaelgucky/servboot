@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ### IntelliJ IDEA ###
 out/
 !**/src/main/**/out/
@@ -36,3 +37,29 @@ bin/
 *.png
 *.pdf
 *.mp4
+=======
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# BlueJ files
+*.ctxt
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+replay_pid*
+>>>>>>> 5d15c15febe3f4acc0d1ae54c561031c424a42bc
