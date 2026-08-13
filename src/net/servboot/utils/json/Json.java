@@ -5,6 +5,7 @@ import net.servboot.utils.reflection.ReflectionUtils;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 public class Json {
@@ -14,26 +15,30 @@ public class Json {
         Json.jsonTypeName = jsonTypeName;
     }
 
-    public static String encode(Object obj) throws Exception {
-        if (obj instanceof ModelIterator) {
-            return encode((ModelIterator<?>) obj, Object.class);
-        } else if(obj instanceof Collection<?>){
-            return encode((List<?>) obj);
-        } else if(obj.getClass().isArray()){
-            Class<?> componentType;
-            int dimensions = 1;
-            while((componentType = obj.getClass().getComponentType()) != null && componentType.isArray()){
-                dimensions++;
-            }
+    public static String encode(Object obj) {
+        try {
+            if (obj instanceof ModelIterator) {
+                return encode((ModelIterator<?>) obj, Object.class);
+            } else if(obj instanceof Collection<?>){
+                return encode((List<?>) obj);
+            } else if(obj.getClass().isArray()){
+                Class<?> componentType;
+                int dimensions = 1;
+                while((componentType = obj.getClass().getComponentType()) != null && componentType.isArray()){
+                    dimensions++;
+                }
 
-            return switch (dimensions) {
-                case 1 -> encode((Object[]) obj, obj.getClass().getComponentType());
-                case 2 -> encode((Object[][]) obj, obj.getClass().getComponentType());
-                case 3 -> encode((Object[][][]) obj, obj.getClass().getComponentType());
-                default -> "[]";
-            };
-        } else {
-            return encode(obj, Object.class, null);
+                return switch (dimensions) {
+                    case 1 -> encode((Object[]) obj, obj.getClass().getComponentType());
+                    case 2 -> encode((Object[][]) obj, obj.getClass().getComponentType());
+                    case 3 -> encode((Object[][][]) obj, obj.getClass().getComponentType());
+                    default -> "[]";
+                };
+            } else {
+                return encode(obj, Object.class, null);
+            }
+        } catch (Exception ignored) {
+            return "[]";
         }
     }
 
@@ -41,7 +46,8 @@ public class Json {
         return encode(objects.toArray(), Object.class);
     }
 
-    private static <T> String encode(ModelIterator<T> modelIterator, Class<?> superClass) throws IllegalAccessException {
+    private static <T> String encode(ModelIterator<T> modelIterator, Class<?> superClass)
+            throws IllegalAccessException, InvocationTargetException {
         StringBuilder json = new StringBuilder("[");
 
         while (modelIterator.hasNext()) {
@@ -56,7 +62,8 @@ public class Json {
         return json.toString();
     }
 
-    private static <T> String encode(T[] objects, Class<?> superClass) throws IllegalAccessException {
+    private static <T> String encode(T[] objects, Class<?> superClass)
+            throws IllegalAccessException, InvocationTargetException {
         StringBuilder json = new StringBuilder("[");
         for(int i = 0; i < objects.length; i++){
             StringBuilder inj = new StringBuilder();
@@ -77,7 +84,8 @@ public class Json {
         return json.toString();
     }
 
-    public static <T> String encode(T[][] objects, Class<?> superClass) throws IllegalAccessException {
+    public static <T> String encode(T[][] objects, Class<?> superClass)
+            throws IllegalAccessException, InvocationTargetException {
         StringBuilder json = new StringBuilder("[");
         for(int i = 0; i < objects.length; i++){
             json.append(encode(objects[i], superClass));
@@ -89,7 +97,8 @@ public class Json {
         return json.toString();
     }
 
-    public static <T> String encode(T[][][] objects, Class<?> superClass) throws IllegalAccessException {
+    public static <T> String encode(T[][][] objects, Class<?> superClass)
+            throws IllegalAccessException, InvocationTargetException {
         StringBuilder json = new StringBuilder("[");
         for(int i = 0; i < objects.length; i++){
             json.append(encode(objects[i], superClass));
@@ -101,78 +110,63 @@ public class Json {
         return json.toString();
     }
 
-    private static String encode(Object object, Class<?> superClass, String injectJson) throws IllegalAccessException {
+    private static String encode(Object object, Class<?> superClass, String injectJson)
+            throws IllegalAccessException, InvocationTargetException {
         StringBuilder json = new StringBuilder();
 
         if(object instanceof Map || object instanceof Dictionary){
             json.append(encodeMap(object));
-        } else if(object.getClass().equals(Boolean.class)
-            || object.getClass().equals(Byte.class)
-            || object.getClass().equals(Short.class)
-            || object.getClass().equals(Integer.class)
-            || object.getClass().equals(Long.class)
-            || object.getClass().equals(Float.class)
-            || object.getClass().equals(Double.class))
-        {
-            json.append(object);
         } else if(object.getClass().equals(Character.class)
-            ||  object.getClass().equals(String.class))
-        {
+                ||  object.getClass().equals(String.class)) {
             json.append("\"");
             json.append(object);
             json.append("\"");
+        } else if(ReflectionUtils.isPrimitive(object.getClass())) {
+            json.append(object);
         } else {
-            List<Field> fields = new ArrayList<>(Arrays.asList(object.getClass().getDeclaredFields()));
-            Class<?> type = object.getClass().getSuperclass();
-            while (type != null && type != Object.class) {
-                fields.addAll(Arrays.asList(type.getDeclaredFields()));
-                type = type.getSuperclass();
-            }
+            Set<Field> fields = ReflectionUtils.getAllFields(object.getClass());
             String[] names = fields.stream().map(Field::getName).toArray(String[]::new);
             json.append("{");
             if (injectJson != null && !injectJson.isEmpty()) {
                 json.append(injectJson);
             }
-            for (int j = 0; j < fields.size(); j++) {
+
+            int count = 0;
+            for (Field field : fields) {
                 Object value;
-                if (!fields.get(j).getType().equals(Map.class) && !fields.get(j).getType().equals(Dictionary.class)) {
-                    fields.get(j).setAccessible(true);
+                if (!field.getType().equals(Map.class) && !field.getType().equals(Dictionary.class)) {
                     json.append("\"");
-                    json.append(names[j]);
+                    json.append(names[count]);
                     json.append("\": ");
-                    value = fields.get(j).get(object);
+                    value = ReflectionUtils.callGetter(object, field.getName());
                 } else {
                     value = object;
                 }
-                fields.get(j).setAccessible(true);
+                field.setAccessible(true);
                 if (value == null) {
                     json.append("null");
-                    if (j < fields.size() - 1) {
+                    if (count < fields.size() - 1) {
                         json.append(",");
                     }
-                } else if (fields.get(j).getType() == String.class
-                        || fields.get(j).getType() == char.class) {
+                } else if (field.getType() == String.class
+                        || field.getType() == char.class) {
                     json.append("\"");
-                    json.append(fields.get(j).get(object));
-                    if (j < fields.size() - 1) {
+                    json.append(field.get(object));
+                    if (count < fields.size() - 1) {
                         json.append("\",");
                     } else {
                         json.append("\"");
                     }
-                } else if (fields.get(j).getType() == int.class
-                        || fields.get(j).getType() == long.class
-                        || fields.get(j).getType() == double.class
-                        || fields.get(j).getType() == float.class
-                        || fields.get(j).getType() == boolean.class
-                        || fields.get(j).getType() == byte.class
-                        || fields.get(j).getType() == short.class) {
-                    json.append(fields.get(j).get(object));
-                    if (j < fields.size() - 1) {
+                } else if (ReflectionUtils.isPrimitive(field.getType())) {
+                    json.append(field.get(object));
+                    if (count < fields.size() - 1) {
                         json.append(",");
                     }
-                } else if ((value.getClass().isArray() || value instanceof Collection) && fields.get(j).getType() != superClass) {
+                } else if (value instanceof Collection)  {
+                    json.append(encode(value));
+                } else if ((value.getClass().isArray()) && field.getType() != superClass) {
                     int dimension = 0;
-                    Class<?> t = fields.get(j).getType().getComponentType();
+                    Class<?> t = field.getType().getComponentType();
                     while (t != null) {
                         dimension++;
                         t = t.getComponentType();
@@ -180,7 +174,7 @@ public class Json {
                     switch (dimension) {
                         case 1:
                             json.append(encode((Object[]) value, object.getClass()));
-                            if (j < fields.size() - 1) {
+                            if (count < fields.size() - 1) {
                                 json.append(",");
                             }
                             break;
@@ -199,32 +193,32 @@ public class Json {
                     json.append("\"");
                     json.append(((Enum<?>) value).name());
                     json.append("\"");
-                    if (j < fields.size() - 1) {
+                    if (count < fields.size() - 1) {
                         json.append(",");
                     }
-                } else if (fields.get(j).getType() != superClass) {
+                } else if (field.getType() != superClass) {
                     StringBuilder injectedJson = new StringBuilder();
-                    if ((fields.get(j).get(object).getClass() != Integer.class) && !fields.get(j).get(object).getClass().getSimpleName().equalsIgnoreCase(fields.get(j).getType().getSimpleName())) {
+                    if ((field.get(object).getClass() != Integer.class) && !field.get(object).getClass().getSimpleName().equalsIgnoreCase(field.getType().getSimpleName())) {
                         injectedJson.append("\"");
                         injectedJson.append(jsonTypeName);
                         injectedJson.append("\": ");
                         injectedJson.append("\"");
-                        injectedJson.append(fields.get(j).get(object).getClass().getName());
+                        injectedJson.append(field.get(object).getClass().getName());
                         injectedJson.append("\",");
                     }
                     json.append(encode(value, object.getClass(), injectedJson.toString()));
-                    if (j < fields.size() - 1) {
+                    if (count < fields.size() - 1) {
                         json.append(",");
                     }
                 } else {
                     json.append("\"");
                     json.append(value.getClass().getSimpleName());
                     json.append("\"");
-                    if (j < fields.size() - 1) {
+                    if (count < fields.size() - 1) {
                         json.append(",");
                     }
                 }
-
+                count++;
             }
             json.append("}");
         }

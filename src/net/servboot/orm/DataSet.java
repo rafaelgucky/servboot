@@ -137,7 +137,6 @@ public class DataSet<T> extends LinkedList<T> implements Cloneable {
     public DataSet<T> clone() {
         DataSet<T> clone = (DataSet<T>) super.clone();
         clone.reset();
-
         return clone;
     }
 }

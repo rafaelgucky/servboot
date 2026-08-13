@@ -43,15 +43,12 @@ public class PersonController extends ControllerBase {
     @GET()
     @Path("all")
     public Response findAll() throws Exception {
-        DataSet<Person> dt = DataBaseContext.personDataSet.clone();
-        dt.setLimit(10);
-        dt.getSelect().removeColumn("Pet.id");
-        ResultSet rs = ConnectionManager.getConnection().createStatement().executeQuery(dt.getCommand());
+        DataSet<Person> dt = DataBaseContext.getPersonDataSet();
+//        dt.addCondition(new Condition("person.id", Operator.EQUAL, 10));
+//        dt.setLimit(10);
+        ResultSet rs = ConnectionManager.getConnection().createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY).executeQuery(dt.getCommand());
 
-        System.out.println(dt.getCommand());
-//        return ok(OrmReflectionUtils.getAllEntitiesFromResultSet(Person.class, rs));
         return ok(new ModelIterator<>(Person.class, rs));
-//        return ok();
     }
 
     @GET("find/{id}")

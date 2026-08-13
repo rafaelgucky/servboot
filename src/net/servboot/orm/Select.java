@@ -5,6 +5,7 @@ import net.servboot.utils.reflection.orm.OrmReflectionUtils;
 import java.lang.reflect.Field;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 public class Select <T> {
@@ -50,7 +51,7 @@ public class Select <T> {
 
         for (Field field : fields) {
             if (OrmReflectionUtils.isForeign(field)) {
-                columns.addAll(this.generateColumns(field.getType(), OrmReflectionUtils.getTableName(field.getType()) + ".",  entityPrefix + field.getType().getSimpleName() + "."));
+                columns.addAll(this.generateColumns(Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)), OrmReflectionUtils.getTableName(Objects.requireNonNull(OrmReflectionUtils.getForeignType(field))) + ".",  entityPrefix + Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)).getSimpleName() + "."));
             } else if (!ReflectionUtils.isTransient(field)) {
                 columns.add(new ColumnMap(dbPrefix + OrmReflectionUtils.getDbFieldName(field), entityPrefix + field.getName()));
             }

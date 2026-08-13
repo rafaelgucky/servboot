@@ -24,10 +24,6 @@ public class OrmReflectionUtils {
         return table.value();
     }
 
-    public static Class<?> getForeignClazz(Field field){
-        return field.getAnnotation(ForeignKey.class).entity();
-    }
-
     public static Field getForeignField(Class<?> clazz, String fieldName) {
         return getKeys(clazz).stream()
                 .filter(f -> f.getName().equalsIgnoreCase(fieldName))
@@ -59,7 +55,7 @@ public class OrmReflectionUtils {
 
     public static Set<Field> getForeignFields(Class<?> clazz) {
         return ReflectionUtils.getAllFields(clazz).stream()
-                .filter(field -> field.isAnnotationPresent(ForeignKey.class))
+                .filter(OrmReflectionUtils::isForeign)
                 .collect(Collectors.toSet());
     }
 
@@ -104,6 +100,20 @@ public class OrmReflectionUtils {
         return field.getAnnotation(OneToMany.class) != null || field.getAnnotation(OneToOne.class) != null;
     }
 
+    public static Class<?> getForeignType(Field field) {
+        OneToOne oneToOne = field.getAnnotation(OneToOne.class);
+        if (oneToOne != null) {
+            return oneToOne.targetClass() != null ? oneToOne.targetClass() : field.getType();
+        }
+
+        OneToMany oneToMany = field.getAnnotation(OneToMany.class);
+        if (oneToMany != null) {
+            return oneToMany.targetClass();
+        }
+
+        return null;
+    }
+
     public static List<Join> getJoins(Class<?> clazz) {
         List<Join> joins = new LinkedList<>();
 
@@ -120,18 +130,28 @@ public class OrmReflectionUtils {
         OneToMany oneToMany = child.getAnnotation(OneToMany.class);
         if (oneToMany != null) {
             join = new Join(JoinType.LEFT_JOIN, getTableName(oneToMany.targetClass()));
+
+            for (Field field : getKeys(OrmReflectionUtils.getForeignType(child))) {
+                join.addCondition(
+                        new Condition(
+                                getTableName(oneToMany.targetClass()) + "." + getTableName(parent) + StringUtils.upperFirst(field.getName()),
+                                Operator.EQUAL,
+                                getTableName(parent) + "." + OrmReflectionUtils.getDbFieldName(field)
+                        )
+                );
+            }
         } else {
             OneToOne oneToOne = child.getAnnotation(OneToOne.class);
             if (oneToOne != null) {
                 join = new Join(JoinType.LEFT_JOIN, getTableName(oneToOne.targetClass() != null ?  oneToOne.targetClass() : child.getType()));
+
+                for (Field field : getKeys(OrmReflectionUtils.getForeignType(child))) {
+                    join.addCondition(new Condition( getTableName(parent) + "." + Objects.requireNonNull(OrmReflectionUtils.getForeignType(child)).getSimpleName().toLowerCase() + StringUtils.upperFirst(field.getName()), Operator.EQUAL, getTableName(Objects.requireNonNull(OrmReflectionUtils.getForeignType(child))) + "." + getDbFieldName(field)));
+                }
             }
         }
 
         Objects.requireNonNull(join);
-
-        for (Field field : getKeys(child.getType())) {
-            join.addCondition(new Condition( getTableName(parent) + "." + child.getType().getSimpleName().toLowerCase() + StringUtils.upperFirst(field.getName()), Operator.EQUAL, getTableName(child.getType()) + "." + getDbFieldName(field)));
-        }
 
         return join;
     }
@@ -186,7 +206,7 @@ public class OrmReflectionUtils {
 
                 // Se a propriedade não existir, é uma FK
                 try {
-                    ReflectionUtils.getField(entity.getClass(), column);
+                    ReflectionUtils.getField(entity.getClass(), StringUtils.removePrefix(column, removePrefix));
                     ReflectionUtils.callSetter(entity, StringUtils.removePrefix(column, removePrefix), value);
                 } catch (NoSuchFieldException e) {
                     Field field = Objects.requireNonNull(getFieldByJoinName(entity.getClass(), column.substring(0, column.indexOf("."))));
@@ -234,7 +254,7 @@ public class OrmReflectionUtils {
         Set<Field> keys = getKeys(entity.getClass());
 
         if (true) {
-            throw new RuntimeException("Ajustar: o nome da coluna que virá do banco nem sempre será getDbFieldName(field)");
+            //throw new RuntimeException("Ajustar: o nome da coluna que virá do banco nem sempre será getDbFieldName(field)");
         }
 
         for (Field field : keys) {
