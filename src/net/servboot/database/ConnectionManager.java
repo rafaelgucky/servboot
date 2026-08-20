@@ -12,7 +12,7 @@ import java.util.Stack;
 import java.util.function.Consumer;
 
 public class ConnectionManager {
-    public static final short MAX_CONNECTIONS = 100;
+    public static final short MAX_CONNECTIONS = 10;
     private static final Stack<Connection> pool = new Stack<>();
     private static final Map<String, Connection> connections = new LinkedHashMap<>();
 
@@ -23,7 +23,7 @@ public class ConnectionManager {
     }
 
     private static Connection createConnection() throws SQLException {
-        Connection connection = DataBase.getConnection();
+        Connection connection = DataBase.getPostgreSqlConnection();
         connection.setAutoCommit(false);
 
         return connection;

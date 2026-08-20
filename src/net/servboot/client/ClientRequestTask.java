@@ -31,6 +31,10 @@ public final class ClientRequestTask extends Thread implements Closeable, Compar
         this.client = client;
     }
 
+    public Request getRequest() {
+        return this.request;
+    }
+
     public void setOnFinalize(Consumer<ClientRequestTask> onFinalize) {
         this.onFinalize = onFinalize;
     }

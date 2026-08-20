@@ -45,6 +45,10 @@ public class ReflectionUtils {
         return field.toGenericString().contains("transient");
     }
 
+    public static boolean isStatic(Field field) {
+        return field.toGenericString().contains("static");
+    }
+
     public static boolean isPrimitive(Field field){
         return ReflectionUtils.isPrimitive(field.getType());
     }
@@ -146,6 +150,8 @@ public class ReflectionUtils {
 
     public static Field getField(Class<?> clazz, String fieldName, int searchLevel) throws NoSuchFieldException {
         if (clazz == null || fieldName.isBlank()) return null;
+
+        fieldName = StringUtils.removePrefix(fieldName, clazz.getSimpleName() + ".");
 
         if (fieldName.contains(".")) {
             String newFieldName = StringUtils.lowerFirst(fieldName.substring(0, fieldName.indexOf('.')));

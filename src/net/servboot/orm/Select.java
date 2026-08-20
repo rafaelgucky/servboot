@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class Select <T> {
     private String command;
@@ -42,16 +43,19 @@ public class Select <T> {
     }
 
     protected final List<ColumnMap> generateColumns(Class<?> entityClass, String dbPrefix, String entityPrefix) {
-        Set<Field> fields = ReflectionUtils.getAllFields(entityClass);
+        Set<Field> fields = ReflectionUtils.getAllFields(entityClass).stream()
+                .filter(field -> !ReflectionUtils.isStatic(field) && !ReflectionUtils.isTransient(field))
+                .collect(Collectors.toSet());
+
         List<ColumnMap> columns = new LinkedList<>();
 
         if (dbPrefix == null || dbPrefix.isEmpty()) {
-            dbPrefix = OrmReflectionUtils.getTableName(entityClass) + ".";
+            dbPrefix = OrmReflectionUtils.getTableName(entityClass, false) + ".";
         }
 
         for (Field field : fields) {
             if (OrmReflectionUtils.isForeign(field)) {
-                columns.addAll(this.generateColumns(Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)), OrmReflectionUtils.getTableName(Objects.requireNonNull(OrmReflectionUtils.getForeignType(field))) + ".",  entityPrefix + Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)).getSimpleName() + "."));
+                columns.addAll(this.generateColumns(Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)), OrmReflectionUtils.getTableName(Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)), false) + ".",  entityPrefix + Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)).getSimpleName() + "."));
             } else if (!ReflectionUtils.isTransient(field)) {
                 columns.add(new ColumnMap(dbPrefix + OrmReflectionUtils.getDbFieldName(field), entityPrefix + field.getName()));
             }

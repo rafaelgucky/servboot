@@ -7,15 +7,10 @@ import net.servboot.annotations.Path;
 import net.servboot.context.DataBaseContext;
 import net.servboot.controllers.ControllerBase;
 import net.servboot.database.ConnectionManager;
-import net.servboot.orm.Condition;
 import net.servboot.orm.DataSet;
 import net.servboot.orm.ModelIterator;
-import net.servboot.orm.ServBootQuery;
-import net.servboot.orm.enums.Operator;
 import net.servboot.response.Response;
-import net.servboot.utils.reflection.ColumnUtils;
 import net.servboot.utils.reflection.orm.OrmReflectionUtils;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.sql.ResultSet;
@@ -34,33 +29,22 @@ public class PersonController extends ControllerBase {
     @GET("test")
     @Path("test")
     public Response test() throws Exception {
-        ServBootQuery<Person> sbq = new ServBootQuery<>(Person.class);
-//        ServBootQuery<Pet> sql2 = sbq.map(Person::getPet);
-//        List<String> columns = sbq.getColumns();
-        return ok(ColumnUtils.getDataBaseName(Person.class, "Pet.id"));
+        DataSet<Person> pds = DataBaseContext.getPersonDataSet();
+        pds.filter("Person.id", "=", 10);
+
+        return ok(OrmReflectionUtils.getAllEntitiesByResultSet(Person.class, ConnectionManager.getConnection().createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY).executeQuery(pds.getCommand())).stream().map(Person::getPets).toArray());
     }
 
     @GET()
     @Path("all")
-    public Response findAll() throws Exception {
-        DataSet<Person> dt = DataBaseContext.getPersonDataSet();
-//        dt.addCondition(new Condition("person.id", Operator.EQUAL, 10));
-//        dt.setLimit(10);
-        ResultSet rs = ConnectionManager.getConnection().createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY).executeQuery(dt.getCommand());
-
-        return ok(new ModelIterator<>(Person.class, rs));
+    public Response findAll() throws Exception{
+        return ok(Person.getService().findAll());
     }
 
     @GET("find/{id}")
     @Path("find/{id}")
     public Response find(int id) throws Exception {
-        DataSet<Person> dt = DataBaseContext.personDataSet.clone();
-        dt.addCondition(new Condition("person.name", Operator.LIKE, "%Nicanor%"));
-
-        ResultSet rs = ConnectionManager.getConnection().createStatement().executeQuery(dt.getCommand());
-//        return ok(OrmReflectionUtils.getAllEntitiesFromResultSet(Person.class, rs));
-        return ok(new ModelIterator<>(Person.class, rs));
-//        return ok();
+        return ok(Person.getService().findById(id));
     }
 
     @GET("find/index/{index}")

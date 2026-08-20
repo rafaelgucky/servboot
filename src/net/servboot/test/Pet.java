@@ -4,7 +4,7 @@ import net.servboot.annotations.Column;
 import net.servboot.annotations.Key;
 import net.servboot.annotations.Table;
 
-@Table("pet")
+@Table(value = "pet", schema = "eventer")
 public class Pet {
     @Key()
     public int id;

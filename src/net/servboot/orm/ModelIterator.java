@@ -10,18 +10,22 @@ import java.util.List;
 public class ModelIterator<T> implements Iterator<T> {
     private final Class<T> clazz;
     private final ResultSet resultSet;
-    private final List<String> queriedColumns;
+    private List<String> queriedColumns;
 
     public ModelIterator(Class<T> clazz, ResultSet resultSet) {
         this.clazz = clazz;
         this.resultSet = resultSet;
-        this.queriedColumns = OrmReflectionUtils.getQueriedColumns(this.resultSet);
     }
 
     @Override
     public boolean hasNext() {
         try {
-            return this.resultSet.next();
+            if (!this.resultSet.next()) {
+                this.resultSet.getStatement().close();
+                return false;
+            }
+
+            return true;
         } catch (SQLException ignore) {
             return false;
         }
@@ -30,6 +34,10 @@ public class ModelIterator<T> implements Iterator<T> {
     @Override
     public T next() {
         try {
+            if (this.queriedColumns == null) {
+                this.queriedColumns = OrmReflectionUtils.getQueriedColumns(this.resultSet);
+            }
+
             T model = ReflectionUtils.instantiate(clazz, false);
             OrmReflectionUtils.fillEntityFromResultSet(model, this.resultSet, this.queriedColumns);
             return model;

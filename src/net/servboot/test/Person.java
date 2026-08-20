@@ -2,20 +2,21 @@ package net.servboot.test;
 
 import net.servboot.annotations.*;
 import net.servboot.annotations.enums.EntityLoad;
+import net.servboot.dependency.DependencyInjectionContainer;
 
 import java.util.List;
+import java.util.Objects;
 
-@Table("person")
-public class Person {
-    @Key(value = "id", increment = true)
+@Table(value = "person", schema = "eventer")
+public class Person extends Entity {
+
+    @Key(value = "id")
     public int id;
     public String name;
 
     @Column(load = EntityLoad.EAGER)
     public String lastName;
     public Integer age;
-
-//    @ForeignKey(entity = Pet.class)
 
     @OneToMany(targetClass = Pet.class)
     public List<Pet> pets;
@@ -58,6 +59,14 @@ public class Person {
 
     public void setPets(List<Pet> pets) {
         this.pets = pets;
+    }
+
+    public static PersonService getService() {
+        if (service == null) {
+            service = Objects.requireNonNullElse(DependencyInjectionContainer.getApplicationScoped(PersonService.class), new PersonService());
+        }
+
+        return (PersonService) service;
     }
 
     @Override

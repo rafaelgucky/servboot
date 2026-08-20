@@ -1,16 +1,21 @@
 package net.servboot.controllers;
 
+import net.servboot.client.ClientRequestTask;
 import net.servboot.io.ServBootFile;
 import net.servboot.request.Request;
+import net.servboot.request.Route;
 import net.servboot.response.Response;
 
 import java.io.InputStream;
 
 public class ControllerBase {
-    public Request Request;
 
-    public void setRequest(Request request){
-        this.Request = request;
+    public Request getRequest() {
+        if (Thread.currentThread() instanceof ClientRequestTask thread) {
+            return thread.getRequest();
+        }
+
+        return null;
     }
 
     public Response file(InputStream inputStream, String fileName) {

@@ -13,7 +13,7 @@ public enum Operator {
     BETWEEN(" between "),
     LIKE(" like "),
     NOT_LIKE(" not like "),
-    IN(" in"),
+    IN(" in "),
     NOT_IN(" not in "),
     DESC(" desc "),
     ASC(" asc ");
@@ -26,5 +26,15 @@ public enum Operator {
 
     public String getOperator() {
         return operator;
+    }
+
+    public static Operator of(String operator) {
+        for (Operator op : Operator.values()) {
+            if (op.getOperator().trim().equals(operator.trim())) {
+                return op;
+            }
+        }
+
+        return Operator.EQUAL;
     }
 }

@@ -7,6 +7,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Json {
     private static String jsonTypeName = "instanceType";
@@ -66,16 +67,7 @@ public class Json {
             throws IllegalAccessException, InvocationTargetException {
         StringBuilder json = new StringBuilder("[");
         for(int i = 0; i < objects.length; i++){
-            StringBuilder inj = new StringBuilder();
-            if(!objects.getClass().getComponentType().equals(objects[i].getClass())){
-                inj.append("\"");
-                inj.append(jsonTypeName);
-                inj.append("\": ");
-                inj.append("\"");
-                inj.append(objects[i].getClass().getName());
-                inj.append("\",");
-            }
-            json.append(encode(objects[i], superClass, inj.toString()));
+            json.append(encode(objects[i], superClass, ""));
             if(i != objects.length - 1){
                 json.append(",");
             }
@@ -124,7 +116,10 @@ public class Json {
         } else if(ReflectionUtils.isPrimitive(object.getClass())) {
             json.append(object);
         } else {
-            Set<Field> fields = ReflectionUtils.getAllFields(object.getClass());
+            Set<Field> fields = ReflectionUtils.getAllFields(object.getClass()).stream()
+                    .filter(field -> !ReflectionUtils.isStatic(field) && !ReflectionUtils.isTransient(field))
+                    .collect(Collectors.toSet());
+
             String[] names = fields.stream().map(Field::getName).toArray(String[]::new);
             json.append("{");
             if (injectJson != null && !injectJson.isEmpty()) {

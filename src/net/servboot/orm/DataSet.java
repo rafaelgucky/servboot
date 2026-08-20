@@ -1,8 +1,13 @@
 package net.servboot.orm;
 
+import net.servboot.orm.enums.Operator;
+import net.servboot.utils.reflection.ReflectionUtils;
 import net.servboot.utils.reflection.orm.OrmReflectionUtils;
+
+import java.lang.reflect.Field;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 public class DataSet<T> extends LinkedList<T> implements Cloneable {
     private int limit;
@@ -130,6 +135,19 @@ public class DataSet<T> extends LinkedList<T> implements Cloneable {
                 Group.getCommand(this.groups) +
                 Order.getCommand(this.orders) +
                 (this.limit > 0 ? " limit " + this.limit : "");
+    }
+
+    public DataSet<T> filter(String field, String operator, Object value) {
+        try {
+            Field classField = ReflectionUtils.getField(this.entityClass, field);
+            Condition condition = new Condition((OrmReflectionUtils.getTableName(classField.getDeclaringClass()) + "." + OrmReflectionUtils.getDbFieldName(classField)), Operator.of(operator), value);
+            if (this.conditions != null && !this.conditions.isEmpty()) {
+                condition.setSQLOperator(Operator.AND);
+            }
+            this.addCondition(condition);
+        } catch (NoSuchFieldException ignore) { }
+
+        return this;
     }
 
     @Override

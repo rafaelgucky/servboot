@@ -9,6 +9,8 @@ import net.servboot.orm.enums.JoinType;
 import net.servboot.orm.enums.Operator;
 import net.servboot.utils.reflection.ReflectionUtils;
 import net.servboot.utils.strings.StringUtils;
+import org.postgresql.jdbc.PgResultSet;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.ResultSet;
@@ -19,9 +21,13 @@ import java.util.stream.Collectors;
 public class OrmReflectionUtils {
 
     public static String getTableName(Class<?> clazz){
+        return getTableName(clazz, true);
+    }
+
+    public static String getTableName(Class<?> clazz, boolean addSchema){
         Table table = clazz.getAnnotation(Table.class);
         if(table == null || table.value().isEmpty()) return clazz.getSimpleName();
-        return table.value();
+        return addSchema ? table.schema() + "." + table.value() : table.value();
     }
 
     public static Field getForeignField(Class<?> clazz, String fieldName) {
@@ -134,9 +140,9 @@ public class OrmReflectionUtils {
             for (Field field : getKeys(OrmReflectionUtils.getForeignType(child))) {
                 join.addCondition(
                         new Condition(
-                                getTableName(oneToMany.targetClass()) + "." + getTableName(parent) + StringUtils.upperFirst(field.getName()),
+                                getTableName(oneToMany.targetClass(), false) + "." + getTableName(parent, false) + StringUtils.upperFirst(field.getName()),
                                 Operator.EQUAL,
-                                getTableName(parent) + "." + OrmReflectionUtils.getDbFieldName(field)
+                                getTableName(parent, false) + "." + OrmReflectionUtils.getDbFieldName(field)
                         )
                 );
             }
@@ -268,9 +274,13 @@ public class OrmReflectionUtils {
         return true;
     }
 
-    public static List<String> getQueriedColumns(ResultSet resultSet) {
-        return Arrays.stream(((ResultSetImpl) resultSet).getMetadata().getFields())
-                .map(com.mysql.cj.result.Field::getName)
-                .toList();
+    public static List<String> getQueriedColumns(ResultSet resultSet) throws SQLException {
+        List<String> columns = new LinkedList<>();
+
+        for (int i = 1; i <= resultSet.getMetaData().getColumnCount(); i++) {
+            columns.add(resultSet.getMetaData().getColumnName(i));
+        }
+
+        return columns;
     }
 }
