@@ -1,5 +1,4 @@
 import net.servboot.Application;
-import net.servboot.database.ConnectionManager;
 import net.servboot.test.PersonService;
 
 public class Main {
