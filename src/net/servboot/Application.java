@@ -7,6 +7,7 @@ import net.servboot.server.ServerManager;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.util.function.Consumer;
 
 public final class Application {
     public Application() {
@@ -52,5 +53,11 @@ public final class Application {
 
     public void addApplicationScoped(Class<?> clazz)throws IllegalAccessException, InstantiationException, InvocationTargetException {
         DependencyInjectionContainer.addApplicationScoped(clazz);
+    }
+
+    // ==================== LOGGER =========================//
+
+    public void setLogger(Consumer<Exception> logger) {
+        ServerManager.setLogger(logger);
     }
 }

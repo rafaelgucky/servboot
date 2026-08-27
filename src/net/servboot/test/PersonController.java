@@ -16,6 +16,7 @@ import java.io.FileInputStream;
 import java.sql.ResultSet;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Controller("person")
@@ -26,25 +27,17 @@ public class PersonController extends ControllerBase {
         this.personService = personService;
     }
 
-    @GET("test")
-    @Path("test")
-    public Response test() throws Exception {
-        DataSet<Person> pds = DataBaseContext.getPersonDataSet();
-        pds.filter("Person.id", "=", 10);
-
-        return ok(OrmReflectionUtils.getAllEntitiesByResultSet(Person.class, ConnectionManager.getConnection().createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY).executeQuery(pds.getCommand())).stream().map(Person::getPets).toArray());
-    }
-
     @GET()
     @Path("all")
-    public Response findAll() throws Exception{
-        return ok(Person.getService().findAll());
+    public Response findAll() throws Exception {
+        List<Person> persons = personService.findAll().toList();
+        return ok(persons);
     }
 
     @GET("find/{id}")
     @Path("find/{id}")
     public Response find(int id) throws Exception {
-        return ok(Person.getService().findById(id));
+        return ok(personService.findById(id));
     }
 
     @GET("find/index/{index}")
@@ -62,7 +55,7 @@ public class PersonController extends ControllerBase {
         Map<String, Object> map = new HashMap<>();
 
         int count = 0;
-        for (; modelIterator.hasNext(); ) {
+        for (Person p : modelIterator) {
             count++;
         }
 
@@ -89,26 +82,13 @@ public class PersonController extends ControllerBase {
     @GET("add")
     @Path("add")
     public Response add(){
-        Pet pet = new Pet();
-        pet.name = "Osvaldo";
-
         Person person = new Person();
-        person.name = "Nicanor";
-        person.lastName = "Vareta";
-        person.age = 25;
-//        person.pet = pet;
-//        personService.add(person);
         return ok(person);
     }
 
     @GET("update")
     @Path("update")
     public Response update(){
-        Person person = new Person();
-        person.id = 6800;
-        person.name = "Nicanor";
-        person.lastName = "Vassoura";
-        person.age = 45;
         return ok(true);
     }
 

@@ -51,9 +51,7 @@ public class Json {
             throws IllegalAccessException, InvocationTargetException {
         StringBuilder json = new StringBuilder("[");
 
-        while (modelIterator.hasNext()) {
-            T obj = modelIterator.next();
-
+        for (T obj : modelIterator) {
             json.append(encode(obj, superClass, ""));
             if(!modelIterator.isLast()){
                 json.append(",");
@@ -137,27 +135,15 @@ public class Json {
                 } else {
                     value = object;
                 }
-                field.setAccessible(true);
                 if (value == null) {
                     json.append("null");
-                    if (count < fields.size() - 1) {
-                        json.append(",");
-                    }
-                } else if (field.getType() == String.class
-                        || field.getType() == char.class) {
+                } else if (field.getType() == String.class || field.getType() == char.class || field.getType() == Character.class || ReflectionUtils.isDate(field.getType())) {
                     json.append("\"");
-                    json.append(field.get(object));
-                    if (count < fields.size() - 1) {
-                        json.append("\",");
-                    } else {
-                        json.append("\"");
-                    }
+                    json.append(value);
+                    json.append("\"");
                 } else if (ReflectionUtils.isPrimitive(field.getType())) {
-                    json.append(field.get(object));
-                    if (count < fields.size() - 1) {
-                        json.append(",");
-                    }
-                } else if (value instanceof Collection)  {
+                    json.append(value);
+                } else if (value instanceof Collection<?>)  {
                     json.append(encode(value));
                 } else if ((value.getClass().isArray()) && field.getType() != superClass) {
                     int dimension = 0;
@@ -188,9 +174,6 @@ public class Json {
                     json.append("\"");
                     json.append(((Enum<?>) value).name());
                     json.append("\"");
-                    if (count < fields.size() - 1) {
-                        json.append(",");
-                    }
                 } else if (field.getType() != superClass) {
                     StringBuilder injectedJson = new StringBuilder();
                     if ((field.get(object).getClass() != Integer.class) && !field.get(object).getClass().getSimpleName().equalsIgnoreCase(field.getType().getSimpleName())) {
@@ -202,18 +185,15 @@ public class Json {
                         injectedJson.append("\",");
                     }
                     json.append(encode(value, object.getClass(), injectedJson.toString()));
-                    if (count < fields.size() - 1) {
-                        json.append(",");
-                    }
                 } else {
                     json.append("\"");
                     json.append(value.getClass().getSimpleName());
                     json.append("\"");
-                    if (count < fields.size() - 1) {
-                        json.append(",");
-                    }
                 }
-                count++;
+
+                if (count++ < fields.size() - 1) {
+                    json.append(",");
+                }
             }
             json.append("}");
         }

@@ -1,6 +1,5 @@
 package net.servboot.utils.reflection.orm;
 
-import com.mysql.cj.jdbc.result.ResultSetImpl;
 import net.servboot.annotations.*;
 import net.servboot.annotations.enums.EntityLoad;
 import net.servboot.orm.Condition;
@@ -9,12 +8,16 @@ import net.servboot.orm.enums.JoinType;
 import net.servboot.orm.enums.Operator;
 import net.servboot.utils.reflection.ReflectionUtils;
 import net.servboot.utils.strings.StringUtils;
-import org.postgresql.jdbc.PgResultSet;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -204,16 +207,14 @@ public class OrmReflectionUtils {
             String column = columns.get(i);
 
             if (removePrefix.isBlank() || column.startsWith(removePrefix)) {
-                Object value = resultSet.getObject(column);
-
-                if  (value == null) {
+                if  (resultSet.getObject(i + 1) == null) {
                     continue;
                 }
 
                 // Se a propriedade não existir, é uma FK
                 try {
-                    ReflectionUtils.getField(entity.getClass(), StringUtils.removePrefix(column, removePrefix));
-                    ReflectionUtils.callSetter(entity, StringUtils.removePrefix(column, removePrefix), value);
+                    Field field = ReflectionUtils.getField(entity.getClass(), StringUtils.removePrefix(column, removePrefix));
+                    ReflectionUtils.callSetter(entity, StringUtils.removePrefix(column, removePrefix), getValue(resultSet, field.getType(), i + 1));
                 } catch (NoSuchFieldException e) {
                     Field field = Objects.requireNonNull(getFieldByJoinName(entity.getClass(), column.substring(0, column.indexOf("."))));
                     Object fkEntity = null;
@@ -252,6 +253,50 @@ public class OrmReflectionUtils {
             } else {
                 resultSet.previous();
             }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T getValue(ResultSet resultSet, Class<T> clazz, int index) throws SQLException {
+
+        // Date
+        if (clazz == Date.class) {
+            return (T) resultSet.getDate(index);
+        } else if (clazz == Timestamp.class) {
+            return (T) resultSet.getTimestamp(index);
+        }  else if (clazz == LocalDate.class) {
+            return (T) resultSet.getDate(index).toLocalDate();
+        }  else if (clazz == LocalTime.class) {
+            return (T) resultSet.getTime(index).toLocalTime();
+        }   else if (clazz == LocalDateTime.class) {
+            return (T) resultSet.getTimestamp(index).toLocalDateTime();
+        } else if (clazz == Instant.class) {
+            return (T) resultSet.getDate(index).toInstant();
+        }
+
+        // Primitives
+        else if (clazz == Boolean.class || clazz == boolean.class) {
+            return (T) (Boolean) resultSet.getBoolean(index);
+        } else if (clazz == Character.class || clazz == char.class) {
+            return (T) (Character) resultSet.getString(index).charAt(0);
+        } else if (clazz == Byte.class || clazz == byte.class) {
+            return (T) (Byte) resultSet.getByte(index);
+        } else if (clazz == Short.class || clazz == short.class) {
+            return (T) (Short) resultSet.getShort(index);
+        } else if (clazz == Integer.class || clazz == int.class) {
+            return (T) (Integer) resultSet.getInt(index);
+        } else if (clazz == Long.class || clazz == long.class) {
+            return (T) (Long) resultSet.getLong(index);
+        }  else if (clazz == Float.class || clazz == float.class) {
+            return (T) (Float) resultSet.getFloat(index);
+        } else if (clazz == Double.class || clazz == double.class) {
+            return (T) (Double) resultSet.getDouble(index);
+        } else if (clazz == BigDecimal.class) {
+            return (T) resultSet.getBigDecimal(index);
+        } else if (clazz == String.class) {
+            return (T) resultSet.getString(index);
+        } else {
+            return (T) resultSet.getObject(index);
         }
     }
 

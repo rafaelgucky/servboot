@@ -1,30 +1,28 @@
+/* table: eventer.person */
+drop table if exists eventer.person;
+
 create table eventer.person (
-	id int not null,
+	id bigint not null,
+	cpf varchar (20) unique,
 	name varchar(80) not null,
-	lastname varchar(80) not null,
-	age smallint not null
+	lastname varchar(80) notnull,
+	dateofbirth date not null,
+	email varchar(255) unique,
+	phone varchar(20),
+	recorddatetime datetim
+	primary key (id)
 );
 
-alter table eventer.person add primary key (id);
-
-create table eventer.pet (
-	id int not null,
-	name varchar(80),
-	personId int not null
+/* table: eventer.user */
+create table eventer.user (
+	id int null not,
+	active bool not null default 0,
+	
 );
 
-alter table eventer.pet add primary key (id);
-alter table eventer.pet add foreign key (personId) references eventer.person (id);
-alter table eventer.pet alter column name set not null;
+/* table: eventer.errorlogs */
+create table if not exists eventer.errorlogs (
+	message text not null
+);
 
-select person.id  as "id", 
- person.name  as "name", 
- person.age  as "age", 
- person.lastname  as "lastName", 
- pet.name  as "Pet.name", 
- pet.id  as "Pet.id" 
- from eventer.person 
-left join eventer.pet on  pet.personId = person.id;
-
-insert into eventer.person values (1, 'Rafael', 'Gucky', 19);
-insert into eventer.pet values (1, 'Spike', 1);
+alter table eventer.errorlogs add column if not exists stacktrace text;

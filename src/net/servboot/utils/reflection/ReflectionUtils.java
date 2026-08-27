@@ -3,6 +3,11 @@ package net.servboot.utils.reflection;
 import net.servboot.dependency.DependencyInjectionContainer;
 import net.servboot.utils.strings.StringUtils;
 import java.lang.reflect.*;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 
 public class ReflectionUtils {
@@ -39,6 +44,10 @@ public class ReflectionUtils {
                 || clazz == Float.class
                 || clazz == Double.class
                 || clazz == String.class;
+    }
+
+    public static boolean isDate(Class<?> clazz) {
+        return clazz == Date.class || clazz == Instant.class || clazz == LocalDate.class || clazz == LocalDateTime.class || clazz == Timestamp.class || clazz == LocalTime.class;
     }
 
     public static boolean isTransient(Field field) {
@@ -163,6 +172,10 @@ public class ReflectionUtils {
             return clazz.getField(newFieldName);
         }
 
-        return clazz.getField(fieldName);
+        final String tempFieldName = fieldName;
+        return ReflectionUtils.getAllFields(clazz).stream()
+                .filter(f -> f.getName().equalsIgnoreCase(tempFieldName))
+                .findAny()
+                .get();
     }
 }

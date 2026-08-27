@@ -1,9 +1,8 @@
 package net.servboot.test;
 
 import net.servboot.annotations.*;
-import net.servboot.annotations.enums.EntityLoad;
-import net.servboot.dependency.DependencyInjectionContainer;
-
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -11,22 +10,30 @@ import java.util.Objects;
 public class Person extends Entity {
 
     @Key(value = "id")
-    public int id;
-    public String name;
+    private Integer id;
+    private String cpf;
+    private String name;
+    private String lastName;
+    private Date dateOfBirth;
+    private String email;
+    private LocalDateTime recordDateTime;
+    @OneToMany(targetClass = User.class)
+    private List<User> users;
 
-    @Column(load = EntityLoad.EAGER)
-    public String lastName;
-    public Integer age;
-
-    @OneToMany(targetClass = Pet.class)
-    public List<Pet> pets;
-
-    public int getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
+    }
+
+    public String getCpf() {
+        return cpf;
+    }
+
+    public void setCpf(String cpf) {
+        this.cpf = cpf;
     }
 
     public String getName() {
@@ -45,37 +52,56 @@ public class Person extends Entity {
         this.lastName = lastName;
     }
 
-    public Integer getAge() {
-        return age;
+    public Date getDateOfBirth() {
+        return dateOfBirth;
     }
 
-    public void setAge(Integer age) {
-        this.age = age;
+    public void setDateOfBirth(Date dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
     }
 
-    public List<Pet> getPets() {
-        return pets;
+    public String getEmail() {
+        return email;
     }
 
-    public void setPets(List<Pet> pets) {
-        this.pets = pets;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
-    public static PersonService getService() {
-        if (service == null) {
-            service = Objects.requireNonNullElse(DependencyInjectionContainer.getApplicationScoped(PersonService.class), new PersonService());
-        }
+    public LocalDateTime getRecordDateTime() {
+        return recordDateTime;
+    }
 
-        return (PersonService) service;
+    public void setRecordDateTime(LocalDateTime recordDateTime) {
+        this.recordDateTime = recordDateTime;
+    }
+
+    public List<User> getUsers() {
+        return users;
+    }
+
+    public void setUsers(List<User> users) {
+        this.users = users;
     }
 
     @Override
     public String toString() {
         return "Person{" +
                 "id=" + id +
+                ", cpf='" + cpf + '\'' +
                 ", name='" + name + '\'' +
                 ", lastName='" + lastName + '\'' +
-                ", age=" + age +
+                ", dateOfBirth=" + dateOfBirth +
+                ", email='" + email + '\'' +
+                ", recordDateTime=" + recordDateTime +
                 '}';
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Person person = (Person) o;
+        return Objects.equals(id, person.id);
+    }
+
 }

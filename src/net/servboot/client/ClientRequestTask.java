@@ -91,7 +91,16 @@ public final class ClientRequestTask extends Thread implements Closeable, Compar
             }
 
             // Chamar o controller
-            Object controllerResult = this.request.getRoute().call(MethodUtils.getSortedParameters(this.request.getRoute().getMethod(), this.request.getParameters()));
+            Object controllerResult;
+            try {
+                controllerResult = this.request.getRoute().call(MethodUtils.getSortedParameters(this.request.getRoute().getMethod(), this.request.getParameters()));
+            } catch (Exception e) {
+                if (ServerManager.getLogger() != null) {
+                    ServerManager.getLogger().accept(e);
+                }
+                return;
+            }
+
             short statusCode = 200;
 
             if(controllerResult instanceof Response response){

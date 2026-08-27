@@ -32,7 +32,7 @@ public class Select <T> {
         }
 
         if (this.columns.isEmpty()) {
-            this.columns = this.generateColumns(entityClass, dbPrefix, entityPrefix);
+            this.columns = this.generateColumns(entityClass, Object.class, dbPrefix, entityPrefix);
         }
 
         return this.columns;
@@ -42,7 +42,7 @@ public class Select <T> {
         this.columns = columns;
     }
 
-    protected final List<ColumnMap> generateColumns(Class<?> entityClass, String dbPrefix, String entityPrefix) {
+    protected final List<ColumnMap> generateColumns(Class<?> entityClass, Class<?> parentClass, String dbPrefix, String entityPrefix) {
         Set<Field> fields = ReflectionUtils.getAllFields(entityClass).stream()
                 .filter(field -> !ReflectionUtils.isStatic(field) && !ReflectionUtils.isTransient(field))
                 .collect(Collectors.toSet());
@@ -55,7 +55,9 @@ public class Select <T> {
 
         for (Field field : fields) {
             if (OrmReflectionUtils.isForeign(field)) {
-                columns.addAll(this.generateColumns(Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)), OrmReflectionUtils.getTableName(Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)), false) + ".",  entityPrefix + Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)).getSimpleName() + "."));
+                if (Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)) != parentClass) {
+                    columns.addAll(this.generateColumns(Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)), entityClass, OrmReflectionUtils.getTableName(Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)), false) + ".",  entityPrefix + Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)).getSimpleName() + "."));
+                }
             } else if (!ReflectionUtils.isTransient(field)) {
                 columns.add(new ColumnMap(dbPrefix + OrmReflectionUtils.getDbFieldName(field), entityPrefix + field.getName()));
             }

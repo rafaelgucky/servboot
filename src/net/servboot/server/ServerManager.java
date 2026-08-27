@@ -5,20 +5,31 @@ import net.servboot.thread.ThreadManager;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.StandardSocketOptions;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
+import java.util.function.Consumer;
 
 public final class ServerManager {
-    private static ServerSocket server;
-    private static final List<ClientRequestTask> threadsPool = new LinkedList<>();
-    private static final Stack<String> threadNames = new Stack<>();
     private static int port = 5000;
     private static int maxRequests = Integer.MAX_VALUE;
     private static boolean running = true;
+    private static ServerSocket server;
+    private static Consumer<Exception> logger;
+    private static final List<ClientRequestTask> threadsPool = new LinkedList<>();
+    private static final Stack<String> threadNames = new Stack<>();
 
     public static ServerSocket getServer() {
         return server;
+    }
+
+    public static void setLogger(Consumer<Exception> logger) {
+        ServerManager.logger = logger;
+    }
+
+    public static Consumer<Exception> getLogger() {
+        return logger;
     }
 
     public static List<ClientRequestTask> getThreadsPool() {
@@ -40,6 +51,7 @@ public final class ServerManager {
     public static boolean initServer(){
         try{
             server = new ServerSocket(port);
+            server.setReceiveBufferSize(Integer.MAX_VALUE);
             return true;
         } catch(IOException ex){
             return false;
