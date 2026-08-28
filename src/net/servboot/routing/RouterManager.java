@@ -19,7 +19,6 @@ public final class RouterManager {
 
     public static void init() throws IOException, ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException {
         loadControllers(new File(getBasePath()));
-        int x = 1;
     }
 
     public static String getBasePath() throws IOException {

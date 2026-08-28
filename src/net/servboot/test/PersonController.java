@@ -7,16 +7,11 @@ import net.servboot.annotations.Path;
 import net.servboot.context.DataBaseContext;
 import net.servboot.controllers.ControllerBase;
 import net.servboot.database.ConnectionManager;
-import net.servboot.orm.DataSet;
-import net.servboot.orm.ModelIterator;
 import net.servboot.response.Response;
-import net.servboot.utils.reflection.orm.OrmReflectionUtils;
 import java.io.File;
 import java.io.FileInputStream;
-import java.sql.ResultSet;
 import java.time.Instant;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @Controller("person")
@@ -29,9 +24,8 @@ public class PersonController extends ControllerBase {
 
     @GET()
     @Path("all")
-    public Response findAll() throws Exception {
-        List<Person> persons = personService.findAll().toList();
-        return ok(persons);
+    public Response findAll() {
+        return ok(DataBaseContext.getPersonDataSet().find());
     }
 
     @GET("find/{id}")
@@ -49,18 +43,11 @@ public class PersonController extends ControllerBase {
     @GET()
     @Path("count")
     public Response count() throws Exception {
-        DataSet<Person> dt = DataBaseContext.personDataSet.clone();
-        ResultSet rs = ConnectionManager.getConnection().createStatement().executeQuery(dt.getCommand());
-        ModelIterator<Person> modelIterator = new ModelIterator<>(Person.class, rs);
         Map<String, Object> map = new HashMap<>();
 
-        int count = 0;
-        for (Person p : modelIterator) {
-            count++;
-        }
-
-        map.put("count", count);
+        map.put("count", personService.findAll().toList().size());
         map.put("utc", Instant.now().toString());
+
         return ok(map);
     }
 

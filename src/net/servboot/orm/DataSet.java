@@ -3,13 +3,12 @@ package net.servboot.orm;
 import net.servboot.orm.enums.Operator;
 import net.servboot.utils.reflection.ReflectionUtils;
 import net.servboot.utils.reflection.orm.OrmReflectionUtils;
-
 import java.lang.reflect.Field;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
-public class DataSet<T> extends LinkedList<T> implements Cloneable {
+public class DataSet<T> extends LinkedHashSet<T> implements Cloneable {
     private int limit;
     private final Class<T> entityClass;
     private final Select<T> select;
@@ -54,6 +53,14 @@ public class DataSet<T> extends LinkedList<T> implements Cloneable {
 
     public List<Order> getOrders() {
         return this.orders;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public DataSet<T> clone() {
+        DataSet<T> clone = (DataSet<T>) super.clone();
+        clone.reset();
+        return clone;
     }
 
     public void addCondition(List<Condition> conditions) {
@@ -150,11 +157,13 @@ public class DataSet<T> extends LinkedList<T> implements Cloneable {
         return this;
     }
 
-    @Override
-    @SuppressWarnings("unchecked")
-    public DataSet<T> clone() {
-        DataSet<T> clone = (DataSet<T>) super.clone();
-        clone.reset();
-        return clone;
+    public ModelIterator<T> findAsIterable() {
+        return Query.executeQuery(this.getCommand(), resultSet -> {
+            return new ModelIterator<>(entityClass, resultSet, this);
+        });
+    }
+
+    public List<T> find() {
+        return findAsIterable().toList();
     }
 }

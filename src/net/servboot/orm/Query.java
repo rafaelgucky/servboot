@@ -3,6 +3,7 @@ package net.servboot.orm;
 import net.servboot.database.ConnectionManager;
 import net.servboot.function.ThrowingConsumer;
 import net.servboot.function.ThrowingFunction;
+import java.io.Closeable;
 import java.sql.*;
 import java.util.List;
 import static java.sql.ResultSet.CONCUR_UPDATABLE;
@@ -10,35 +11,36 @@ import static java.sql.ResultSet.TYPE_SCROLL_SENSITIVE;
 
 public class Query {
 
-    public static void executeQuery(String sql, ThrowingConsumer<ResultSet> consumer)
-            throws SQLException, InterruptedException {
+    public static void executeQuery(String sql, ThrowingConsumer<ResultSet> consumer) {
         try (
             Statement statement = ConnectionManager.getConnection().createStatement(TYPE_SCROLL_SENSITIVE, CONCUR_UPDATABLE);
         ) {
             ResultSet resultSet = statement.executeQuery(sql);
-            try {
-                consumer.accept(resultSet);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+            consumer.accept(resultSet);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
-    public static <E> E executeQuery(String sql, ThrowingFunction<ResultSet, E> function)
-            throws SQLException, InterruptedException {
+    public static <E> E executeQuery(String sql, ThrowingFunction<ResultSet, E> function) {
         try {
             Statement statement = ConnectionManager.getConnection().createStatement(TYPE_SCROLL_SENSITIVE, CONCUR_UPDATABLE);
             ResultSet resultSet = statement.executeQuery(sql);
-            return function.apply(resultSet);
+
+            E result = function.apply(resultSet);
+            if (!(result instanceof Closeable)) {
+                resultSet.close();
+            }
+
+            return result;
         }catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static void executePreparedQuery(String sql, List<Object> values, ThrowingConsumer<ResultSet> consumer)
-            throws SQLException, InterruptedException {
+    public static void executePreparedQuery(String sql, List<Object> values, ThrowingConsumer<ResultSet> consumer) {
         try (
-                PreparedStatement statement = ConnectionManager.getConnection().prepareStatement(sql, TYPE_SCROLL_SENSITIVE, CONCUR_UPDATABLE);
+            PreparedStatement statement = ConnectionManager.getConnection().prepareStatement(sql, TYPE_SCROLL_SENSITIVE, CONCUR_UPDATABLE);
         ) {
             for (int i = 1; i <= values.size(); i++) {
                 Object value = values.get(i - 1);
@@ -52,25 +54,49 @@ public class Query {
         }
     }
 
-    public static boolean execute(String sql) throws SQLException, InterruptedException {
+    public static <E> E executePreparedQuery(String sql, List<Object> values, ThrowingFunction<ResultSet, E> function) {
+        try (
+            PreparedStatement statement = ConnectionManager.getConnection().prepareStatement(sql, TYPE_SCROLL_SENSITIVE, CONCUR_UPDATABLE);
+        ) {
+            for (int i = 1; i <= values.size(); i++) {
+                Object value = values.get(i - 1);
+                setValueOnPreparedStatement(statement, i, value);
+            }
+
+            ResultSet resultSet = statement.executeQuery();
+
+            E result = function.apply(resultSet);
+            if (!(result instanceof Closeable)) {
+                resultSet.close();
+            }
+
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static boolean execute(String sql) {
         try (
             Statement statement = ConnectionManager.getConnection().createStatement();
         ) {
             return statement.execute(sql);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
-    public static int executeUpdate(String sql)
-            throws SQLException, InterruptedException{
+    public static int executeUpdate(String sql) {
         try (
             Statement statement = ConnectionManager.getConnection().createStatement();
         ) {
             return statement.executeUpdate(sql);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
-    public static int executePreparedUpdate(String sql, List<Object> values)
-            throws SQLException, InterruptedException{
+    public static int executePreparedUpdate(String sql, List<Object> values) {
         try (
             PreparedStatement statement = ConnectionManager.getConnection().prepareStatement(sql);
         ) {
@@ -79,6 +105,8 @@ public class Query {
             }
 
             return statement.executeUpdate();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
