@@ -15,14 +15,15 @@ public class StringUtils {
         url = removeSuffix(removePrefix(url.toLowerCase(), "/"), "/");
 
         if (!endPoint.contains("{")) return endPoint.equalsIgnoreCase(url);
-        if (search(endPoint, '/') != search(url, '/') ) return false;
+        if (count(endPoint, '/') != count(url, '/') ) return false;
 
         while (!endPoint.isEmpty() && !url.isEmpty()) {
-            int paramIndex = endPoint.indexOf("{");
-            endPoint = endPoint.substring(paramIndex);
-            endPoint = endPoint.substring(endPoint.contains("/") ? endPoint.indexOf("/") : endPoint.length());
-            url = url.substring(Math.min(paramIndex, url.length()));
-            url = url.substring(url.contains("/") ? url.indexOf("/") : url.length());
+            String endPointWalked = walked(endPoint, '/');
+            String urlWalked = walked(url, '/');
+            if (!endPointWalked.contains("{") && !endPointWalked.equalsIgnoreCase(urlWalked)) return false;
+
+            endPoint = walkAfter(endPoint, '/');
+            url = walkAfter(url, '/');
         }
 
         return endPoint.length() == url.length();
@@ -92,7 +93,7 @@ public class StringUtils {
         return temp;
     }
 
-    public static int search(String str, char target) {
+    public static int count(String str, char target) {
         int count = 0;
 
         for (char c : str.toCharArray()) {
@@ -102,6 +103,14 @@ public class StringUtils {
         }
 
         return count;
+    }
+
+    public static String walkAfter(String str, char target) {
+        return str.substring(str.contains(String.valueOf(target)) ? str.indexOf(target) + 1 : str.length());
+    }
+
+    public static String walked(String str, char target) {
+        return str.substring(0, str.contains(String.valueOf(target)) ? str.indexOf(target) : str.length());
     }
 
     public static String upperFirst(String str) {

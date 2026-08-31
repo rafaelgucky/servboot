@@ -171,6 +171,13 @@ public class OrmReflectionUtils {
         for (Field field : fields) {
             OneToMany oneToMany = field.getAnnotation(OneToMany.class);
             if (oneToMany != null && oneToMany.targetClass().getSimpleName().equalsIgnoreCase(joinName)) return field;
+
+            OneToOne oneToOne = field.getAnnotation(OneToOne.class);
+            if (oneToOne != null
+                    && (oneToOne.targetClass() != void.class && oneToOne.targetClass().getSimpleName().equalsIgnoreCase(joinName))
+                    || field.getType().getSimpleName().equalsIgnoreCase(joinName)) {
+                return field;
+            }
         }
 
         return null;
@@ -217,30 +224,40 @@ public class OrmReflectionUtils {
                     ReflectionUtils.callSetter(entity, StringUtils.removePrefix(column, removePrefix), getValue(resultSet, field.getType(), i + 1));
                 } catch (NoSuchFieldException e) {
                     Field field = Objects.requireNonNull(getFieldByJoinName(entity.getClass(), column.substring(0, column.indexOf("."))));
-                    Object fkEntity = null;
-                    String rmPrefix = "";
                     hasOneToMany = true;
+                    String rmPrefix = "";
 
                     OneToMany oneToMany = field.getAnnotation(OneToMany.class);
                     if (oneToMany != null) {
                         rmPrefix = oneToMany.targetClass().getSimpleName() + ".";
-                        fkEntity = ReflectionUtils.instantiate(oneToMany.targetClass(), false);
+                        Object fkEntity = ReflectionUtils.instantiate(oneToMany.targetClass(), false);
+
+                        fillEntityFromResultSet(fkEntity, resultSet, columns, rmPrefix);
+
+                        Collection<Object> c = ReflectionUtils.callGetter(entity, field.getName());
+                        if (c != null) {
+                            c.add(fkEntity);
+                        } else {
+                            LinkedList<Object> list = new LinkedList<>();
+                            list.add(fkEntity);
+                            ReflectionUtils.callSetter(entity, field.getName(), list);
+                        }
                     }
 
-                    fillEntityFromResultSet(fkEntity, resultSet, columns, rmPrefix);
+                    OneToOne oneToOne = field.getAnnotation(OneToOne.class);
+                    if (oneToOne != null) {
+                        Class<?> fkClass = oneToOne.targetClass() != void.class ? oneToOne.targetClass() : field.getType();
+                        rmPrefix = fkClass.getSimpleName() + ".";
+                        Object fkEntity = ReflectionUtils.instantiate(fkClass, false);
 
-                    Collection<Object> c = ReflectionUtils.callGetter(entity, field.getName());
-                    if (c != null) {
-                        c.add(fkEntity);
-                    } else {
-                        LinkedList<Object> list = new LinkedList<>();
-                        list.add(fkEntity);
-                        ReflectionUtils.callSetter(entity, field.getName(), list);
+                        fillEntityFromResultSet(fkEntity, resultSet, columns, rmPrefix);
+                        ReflectionUtils.callSetter(entity, field.getName(), fkEntity);
                     }
 
-                    while (i < columns.size() && columns.get(i).toLowerCase().startsWith(removePrefix.toLowerCase())) {
+                    while (i < columns.size() && columns.get(i).toLowerCase().startsWith(rmPrefix.toLowerCase())) {
                         i++;
                     }
+                    i--; // Remove loop for auto incrementation
                 }
             }
         }

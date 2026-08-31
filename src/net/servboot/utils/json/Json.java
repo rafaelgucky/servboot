@@ -175,16 +175,7 @@ public class Json {
                     json.append(((Enum<?>) value).name());
                     json.append("\"");
                 } else if (field.getType() != superClass) {
-                    StringBuilder injectedJson = new StringBuilder();
-                    if ((field.get(object).getClass() != Integer.class) && !field.get(object).getClass().getSimpleName().equalsIgnoreCase(field.getType().getSimpleName())) {
-                        injectedJson.append("\"");
-                        injectedJson.append(jsonTypeName);
-                        injectedJson.append("\": ");
-                        injectedJson.append("\"");
-                        injectedJson.append(field.get(object).getClass().getName());
-                        injectedJson.append("\",");
-                    }
-                    json.append(encode(value, object.getClass(), injectedJson.toString()));
+                    json.append(encode(value, object.getClass(), ""));
                 } else {
                     json.append("\"");
                     json.append(value.getClass().getSimpleName());
