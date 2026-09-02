@@ -7,5 +7,5 @@ import java.lang.annotation.RetentionPolicy;
 public @interface Key {
     String value() default "";
     boolean increment() default true;
-    String[] foreign() default {};
+    String[] foreignFields() default {};
 }

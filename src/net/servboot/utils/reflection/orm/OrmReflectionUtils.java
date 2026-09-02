@@ -52,7 +52,7 @@ public class OrmReflectionUtils {
         return column != null && !column.name().isEmpty() ? column.name() : field.getName().toLowerCase();
     }
 
-    public static Field getFieldFromDbColumn(Set<Field> fields, String columnName){
+    public static Field getFieldByDbColumnName(Set<Field> fields, String columnName){
         for(Field field : fields){
             if(field.getName().equalsIgnoreCase(columnName) || getDbFieldName(field).equalsIgnoreCase(columnName)){
                 return field;
@@ -66,37 +66,6 @@ public class OrmReflectionUtils {
         return ReflectionUtils.getAllFields(clazz).stream()
                 .filter(OrmReflectionUtils::isForeign)
                 .collect(Collectors.toSet());
-    }
-
-    public static Set<Field> getEagerFields(Class<?> clazz) {
-        Set<Field> fields = new LinkedHashSet<>();
-
-        for(Field field : clazz.getDeclaredFields()){
-            Column column = field.getAnnotation(Column.class);
-            if(column != null && column.load() == EntityLoad.LAZY) continue;
-            fields.add(field);
-        }
-
-        for(Field field : clazz.getFields()){
-            Column column = field.getAnnotation(Column.class);
-            if(column != null && column.load() == EntityLoad.LAZY) continue;
-            fields.add(field);
-        }
-
-        return fields;
-    }
-
-    public static boolean isNotNull(Field field){
-        ForeignKey foreignKey = field.getAnnotation(ForeignKey.class);
-        if(foreignKey == null){
-            Column column = field.getAnnotation(Column.class);
-            if(column == null) return true;
-            else {
-                return column.notNull();
-            }
-        } else {
-            return foreignKey.notNull();
-        }
     }
 
     public static boolean isIncrement(Field field) {
@@ -329,6 +298,21 @@ public class OrmReflectionUtils {
             String columnName = getDbFieldName(field);
 
             if (ReflectionUtils.callGetter(entity, field.getName()) != resultSet.getObject(columnName)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static <T> boolean equals(T entity, T other) throws IllegalAccessException, InvocationTargetException {
+        Set<Field> keys = getKeys(entity.getClass());
+
+        for (Field field : keys) {
+            Object entityValue = ReflectionUtils.callGetter(entity, field.getName());
+            Object otherValue = ReflectionUtils.callGetter(other, field.getName());
+
+            if ((entityValue == null && otherValue == null) || entityValue != otherValue) {
                 return false;
             }
         }

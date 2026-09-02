@@ -4,11 +4,9 @@ import net.servboot.orm.enums.Operator;
 import net.servboot.utils.reflection.ReflectionUtils;
 import net.servboot.utils.reflection.orm.OrmReflectionUtils;
 import java.lang.reflect.Field;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
-public class DataSet<T> extends LinkedHashSet<T> implements Cloneable {
+public class DataSet<T> extends LinkedHashSet<T> {
     private int limit;
     private final Class<T> entityClass;
     private final Select<T> select;
@@ -61,6 +59,30 @@ public class DataSet<T> extends LinkedHashSet<T> implements Cloneable {
         DataSet<T> clone = (DataSet<T>) super.clone();
         clone.reset();
         return clone;
+    }
+
+    @Override
+    public boolean add(T t) {
+        if (!contains(t)) {
+            return super.add(t);
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean contains(Object o) {
+        try {
+            for (T entity : this) {
+                if (OrmReflectionUtils.equals(entity, o)) {
+                    return true;
+                }
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+
+        return false;
     }
 
     public void addCondition(List<Condition> conditions) {
@@ -165,5 +187,9 @@ public class DataSet<T> extends LinkedHashSet<T> implements Cloneable {
 
     public List<T> find() {
         return findAsIterable().toList();
+    }
+
+    public void fillAsync() {
+
     }
 }

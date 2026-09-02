@@ -7,11 +7,13 @@ import net.servboot.annotations.Path;
 import net.servboot.context.DataBaseContext;
 import net.servboot.controllers.ControllerBase;
 import net.servboot.database.ConnectionManager;
+import net.servboot.orm.DataSet;
 import net.servboot.response.Response;
 import java.io.File;
 import java.io.FileInputStream;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Controller("person")
@@ -25,7 +27,11 @@ public class PersonController extends ControllerBase {
     @GET()
     @Path("all")
     public Response findAll() {
-        return ok(DataBaseContext.getPersonDataSet().find());
+        DataSet<Person> personDataSet = DataBaseContext.getPersonDataSet();
+        List<Person> people = personDataSet.find();
+        people = personDataSet.find();
+
+        return ok(people);
     }
 
     @GET("find/{id}")
