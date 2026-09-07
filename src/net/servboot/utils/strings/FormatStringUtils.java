@@ -1,6 +1,7 @@
 package net.servboot.utils.strings;
 
 public class FormatStringUtils {
+
     public static String addSpaceOnUpperCase(String toFormat) {
         String result = "";
 

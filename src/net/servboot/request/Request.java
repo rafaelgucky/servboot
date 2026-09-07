@@ -44,7 +44,7 @@ public class Request {
         return clientOutputStream;
     }
 
-    public void addParameter(String key, String value){
+    public void addParameter(String key, Object value){
         parameters.put(key, value);
     }
 

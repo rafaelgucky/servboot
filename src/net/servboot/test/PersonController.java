@@ -59,14 +59,12 @@ public class PersonController extends ControllerBase {
 
     @POST("create")
     @Path("create")
-    public Response create(Person person) throws Exception {
-        ConnectionManager.begin();
-//        personService.add(person);
-        ConnectionManager.commit();
+    public Response create(Person person) {
+        DataBaseContext.getPersonDataSet().add(person);
         return ok(person);
     }
 
-    @POST("addImage")
+    @POST
     @Path("addImage")
     public Response addImage(File file) throws Exception {
         return file(new FileInputStream(file), file.getName());
@@ -84,5 +82,4 @@ public class PersonController extends ControllerBase {
     public Response update(){
         return ok(true);
     }
-
 }

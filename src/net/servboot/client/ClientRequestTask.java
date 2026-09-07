@@ -93,7 +93,7 @@ public final class ClientRequestTask extends Thread implements Closeable, Compar
             // Chamar o controller
             Object controllerResult;
             try {
-                controllerResult = this.request.getRoute().call(MethodUtils.getSortedParameters(this.request.getRoute().getMethod(), this.request.getParameters()));
+                controllerResult = this.request.getRoute().call(MethodUtils.getSortedParameters(this.request.getRoute().getMethod(), this.request.getParameters(), this.request.getFiles()));
             } catch (Exception e) {
                 if (ServerManager.getLogger() != null) {
                     ServerManager.getLogger().accept(e);
@@ -111,7 +111,6 @@ public final class ClientRequestTask extends Thread implements Closeable, Compar
             // Devolver resposta ao cliente
             if(controllerResult == null){
                 client.getOutputStream().write(HeaderBuilder.build(Headers.TEXT_PLAIN, statusCode, 0));
-                client.getOutputStream().flush();
             } else if(ReflectionUtils.isPrimitive(controllerResult.getClass())) {
                 int extraBytes = 0;
                 for(char c : controllerResult.toString().toCharArray()){
@@ -119,7 +118,6 @@ public final class ClientRequestTask extends Thread implements Closeable, Compar
                 }
                 client.getOutputStream().write(HeaderBuilder.build(Headers.TEXT_PLAIN, statusCode, controllerResult.toString().length() + extraBytes));
                 client.getOutputStream().write(controllerResult.toString().getBytes(StandardCharsets.UTF_8));
-                client.getOutputStream().flush();
             } else if(controllerResult instanceof File file){
                 try(
                     InputStream reader = new FileInputStream(file);
@@ -128,36 +126,16 @@ public final class ClientRequestTask extends Thread implements Closeable, Compar
                             Headers.getValueFromFileExtension(file.getName().substring(file.getName().indexOf(".") + 1)),
                             statusCode, file.length()));
                     client.getOutputStream().write(reader.readAllBytes());
-                    client.getOutputStream().flush();
                 }
             } else if(controllerResult instanceof ServBootFile sbInputStream){
-                File responseFile;
+                byte[] bytes = sbInputStream.getInputStream().readAllBytes();
 
-                do{
-                    responseFile = new File(System.getProperty("java.io.tmpdir") + "/" + NameGenerator.generateName(sbInputStream.getExtension()));
-                } while (responseFile.exists());
-
-                Files.createFile(responseFile.toPath());
-
-                try(
-                    OutputStream out = new FileOutputStream(responseFile);
-                ){
-                    sbInputStream.getInputStream().transferTo(out);
-                } catch(IOException ioe){
-                    ioe.printStackTrace();
-                }
-
-                try(
-                    InputStream reader = new FileInputStream(responseFile);
-                ) {
-                    client.getOutputStream().write(HeaderBuilder.build(
-                            Headers.getValueFromFileExtension(sbInputStream.getExtension()),
-                            statusCode, responseFile.length(), sbInputStream.isDownload(), sbInputStream.getFileName()));
-                    client.getOutputStream().write(reader.readAllBytes());
-                    client.getOutputStream().flush();
-                }
-
-                Files.deleteIfExists(responseFile.toPath());
+                client.getOutputStream().write(HeaderBuilder.build(
+                        Headers.getValueFromFileExtension(sbInputStream.getExtension()),
+                        statusCode, bytes.length,
+                        sbInputStream.isDownload(), sbInputStream.getFileName())
+                );
+                client.getOutputStream().write(bytes);
             } else {
                 String json = Json.encode(controllerResult);
                 int extraBytes = 0;
@@ -168,33 +146,34 @@ public final class ClientRequestTask extends Thread implements Closeable, Compar
 
                 client.getOutputStream().write(HeaderBuilder.build(Headers.APPLICATION_JSON, statusCode, json.length() + extraBytes));
                 client.getOutputStream().write(json.getBytes(StandardCharsets.UTF_8));
-                client.getOutputStream().flush();
             }
-
         } catch (Exception ex) {
-            ex.printStackTrace();
+            throw new RuntimeException(ex);
         } finally {
-            try {
-                this.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            this.close();
         }
     }
 
     @Override
-    public void close() throws IOException {
-        client.getOutputStream().close();
-        this.cleanFiles();
+    public void close() {
+        try {
+            this.client.getOutputStream().flush();
+            this.client.getInputStream().close();
+            this.client.close();
 
-        if (this.getOnFinalize() != null) {
-            this.getOnFinalize().accept(this);
+            if (this.getOnFinalize() != null) {
+                this.getOnFinalize().accept(this);
+            }
+
+            ServerManager.getThreadsNames().push(this.getName());
+            ServerManager.removeThread(this);
+
+            this.cleanFiles();
+            this.interrupt();
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-
-        ServerManager.getThreadsNames().push(this.getName());
-        ServerManager.removeThread(this);
-
-        this.interrupt();
     }
 
     @Override

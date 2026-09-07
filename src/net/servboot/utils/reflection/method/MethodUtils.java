@@ -1,13 +1,10 @@
 package net.servboot.utils.reflection.method;
 
 import net.servboot.utils.reflection.ReflectionUtils;
-
+import java.io.File;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class MethodUtils {
     public static Set<Method> getMethods(Class<?> clazz) {
@@ -20,7 +17,7 @@ public class MethodUtils {
         return methods;
     }
 
-    public static Object[] getSortedParameters(Method method, Map<String, Object> parameters) {
+    public static Object[] getSortedParameters(Method method, Map<String, Object> parameters, Map<String, List<File>> files) {
         Parameter[] methodParameters = method.getParameters();
         Object[] parametersSorted = new Object[methodParameters.length];
 
@@ -28,7 +25,15 @@ public class MethodUtils {
             if (ReflectionUtils.isPrimitive(methodParameters[i].getType())) {
                 parametersSorted[i] = ReflectionUtils.convertFromString(parameters.get(methodParameters[i].getName()).toString(), methodParameters[i].getType());
             } else {
-                parametersSorted[i] = methodParameters[i].getType().cast(parameters.get(methodParameters[i].getName()));
+                if (files.containsKey(methodParameters[i].getName())) {
+                    if (methodParameters[i].getType().equals(List.class)) {
+                        parametersSorted[i] = files.get(methodParameters[i].getName());
+                    } else {
+                        parametersSorted[i] = files.get(methodParameters[i].getName()).getFirst();
+                    }
+                } else {
+                    parametersSorted[i] = methodParameters[i].getType().cast(parameters.get(methodParameters[i].getName()));
+                }
             }
         }
 
