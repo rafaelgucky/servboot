@@ -1,5 +1,6 @@
 package net.servboot.client;
 
+import net.servboot.dependency.DependencyInjectionContainer;
 import net.servboot.headers.HeaderBuilder;
 import net.servboot.headers.Headers;
 import net.servboot.io.FormDataReader;
@@ -17,15 +18,14 @@ import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 
 public final class ClientRequestTask extends Thread implements Closeable, Comparable<ClientRequestTask> {
     private Socket client;
     private Request request;
     private Consumer<ClientRequestTask> onFinalize;
+    private final Map<String, Object> locals = new LinkedHashMap<>();
 
     public void setClient(Socket client) {
         this.client = client;
@@ -41,6 +41,18 @@ public final class ClientRequestTask extends Thread implements Closeable, Compar
 
     public Consumer<ClientRequestTask> getOnFinalize() {
         return onFinalize;
+    }
+
+    public Map<String, Object> getLocals() {
+        return this.locals;
+    }
+
+    public void addLocal(String key, Object value) {
+        this.locals.put(key, value);
+    }
+
+    public Object getLocal(String key) {
+        return locals.get(key);
     }
 
     @Override
@@ -129,6 +141,7 @@ public final class ClientRequestTask extends Thread implements Closeable, Compar
                 }
             } else if(controllerResult instanceof ServBootFile sbInputStream){
                 byte[] bytes = sbInputStream.getInputStream().readAllBytes();
+                sbInputStream.getInputStream().close();
 
                 client.getOutputStream().write(HeaderBuilder.build(
                         Headers.getValueFromFileExtension(sbInputStream.getExtension()),
@@ -170,7 +183,6 @@ public final class ClientRequestTask extends Thread implements Closeable, Compar
 
             this.cleanFiles();
             this.interrupt();
-
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
