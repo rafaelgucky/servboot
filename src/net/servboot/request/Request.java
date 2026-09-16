@@ -3,7 +3,6 @@ package net.servboot.request;
 import net.servboot.routing.Route;
 import net.servboot.routing.RouterManager;
 import net.servboot.utils.strings.StringUtils;
-import net.servboot.utils.url.StringUrlUtils;
 import java.io.File;
 import java.io.OutputStream;
 import java.util.LinkedHashMap;
@@ -25,7 +24,7 @@ public class Request {
 
     public Request(String method, String url) throws RuntimeException {
         this.stringMethod = method.trim();
-        this.url = StringUrlUtils.format(url.trim());
+        this.url = StringUtils.formatUrl(url.trim());
         this.route = RouterManager.getRoute(this.url);
 //        if (this.route == null) throw new RuntimeException("Route not found");
         if (this.route == null) {
@@ -123,7 +122,7 @@ public class Request {
     }
 
     public void setUrl(String url) {
-        this.url = StringUrlUtils.format(url.trim());
+        this.url = StringUtils.formatUrl(url.trim());
     }
 
     public String getUrl() {

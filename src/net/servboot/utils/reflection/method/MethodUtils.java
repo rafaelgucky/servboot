@@ -7,6 +7,7 @@ import java.lang.reflect.Parameter;
 import java.util.*;
 
 public class MethodUtils {
+
     public static Set<Method> getMethods(Class<?> clazz) {
         Set<Method> methods = new LinkedHashSet<>();
         if (clazz == null) return methods;

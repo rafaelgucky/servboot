@@ -1,4 +1,4 @@
-package net.servboot.database;
+package net.servboot.orm.database;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

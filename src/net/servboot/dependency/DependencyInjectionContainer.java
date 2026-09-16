@@ -22,6 +22,10 @@ public class DependencyInjectionContainer {
         return (T) DependencyInjectionContainer.applicationScoped.get(clazz);
     }
 
+    public static List<Class<?>> getAllApplicationScoped() {
+        return applicationScoped.keySet().stream().toList();
+    }
+
     public static <T> void addRequestScoped(Class<T> clazz) throws RuntimeException {
         if (requestScoped.contains(clazz)) throw new RuntimeException("Duplicate class on DI container detected");
         if (applicationScoped.containsKey(clazz)) throw new RuntimeException("Duplicate class on DI container detected");
@@ -31,5 +35,9 @@ public class DependencyInjectionContainer {
     public static <T> T getRequestScoped(Class<T> clazz) throws IllegalAccessException, InstantiationException, InvocationTargetException {
         if (!requestScoped.contains(clazz)) return null;
         return ReflectionUtils.instantiate(clazz, false);
+    }
+
+    public static List<Class<?>> getAllRequestScoped() {
+        return requestScoped;
     }
 }

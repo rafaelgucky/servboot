@@ -1,6 +1,6 @@
 package net.servboot.orm;
 
-import net.servboot.database.ConnectionManager;
+import net.servboot.orm.database.ConnectionManager;
 import net.servboot.function.ThrowingConsumer;
 import net.servboot.function.ThrowingFunction;
 import java.io.Closeable;

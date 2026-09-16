@@ -1,5 +1,6 @@
 package net.servboot.utils.strings;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -119,5 +120,20 @@ public class StringUtils {
 
     public static String lowerFirst(String str) {
         return str.substring(0, 1).toLowerCase() + str.substring(1);
+    }
+
+    public static String addSpaceOnUpperCase(String toFormat) {
+        String result = "";
+
+        for(char c : toFormat.toCharArray()){
+            result += Character.isUpperCase(c) ? " " + c : c;
+        }
+
+        return result;
+    }
+
+    public static String formatUrl(String url) {
+        if(url == null || url.isEmpty()) return "";
+        return url.substring(0, (url.lastIndexOf('/') >= url.length() - 1 ? url.lastIndexOf('/') : url.length()));
     }
 }

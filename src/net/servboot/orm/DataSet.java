@@ -174,7 +174,9 @@ public class DataSet<T> extends LinkedHashSet<T> {
                 condition.setSQLOperator(Operator.AND);
             }
             this.addCondition(condition);
-        } catch (NoSuchFieldException ignore) { }
+        } catch (NoSuchFieldException ex) {
+            throw new RuntimeException(ex);
+        }
 
         return this;
     }
@@ -187,9 +189,5 @@ public class DataSet<T> extends LinkedHashSet<T> {
 
     public List<T> find() {
         return findAsIterable().toList();
-    }
-
-    public void fillAsync() {
-
     }
 }

@@ -1,15 +1,13 @@
-package net.servboot.database;
+package net.servboot.orm.database;
 
 import net.servboot.client.ClientRequestTask;
 
-import java.awt.*;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Stack;
-import java.util.function.Consumer;
 
 public class ConnectionManager {
     public static final short MAX_CONNECTIONS = 10;

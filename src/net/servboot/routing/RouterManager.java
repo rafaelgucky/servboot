@@ -2,7 +2,6 @@ package net.servboot.routing;
 
 import net.servboot.annotations.Controller;
 import net.servboot.annotations.Path;
-import net.servboot.dependency.DependencyInjectionContainer;
 import net.servboot.utils.reflection.ReflectionUtils;
 import net.servboot.utils.reflection.method.MethodUtils;
 import net.servboot.utils.strings.StringUtils;
@@ -51,7 +50,18 @@ public final class RouterManager {
     }
 
     public static Route getRoute(String url) {
-        return routesPool.stream().filter(route -> StringUtils.equalsIgnorePathParams(route.getPath(), url)).findFirst().orElse(null);
+        Route route = routesPool.stream().filter(r -> StringUtils.equalsIgnorePathParams(r.getPath(), url)).findFirst().orElse(null);
+
+        if (route != null) {
+            try {
+                Object controller = ReflectionUtils.instantiate((route.getController()).getClass(), true);
+                route = new Route(route.getPath(), controller, route.getMethod());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        return route;
     }
 
     public static Object getController(String url) {

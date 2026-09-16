@@ -1,6 +1,6 @@
 package net.servboot;
 
-import net.servboot.database.ConnectionManager;
+import net.servboot.orm.database.ConnectionManager;
 import net.servboot.dependency.DependencyInjectionContainer;
 import net.servboot.routing.RouterManager;
 import net.servboot.server.ServerManager;

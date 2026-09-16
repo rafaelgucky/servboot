@@ -1,9 +1,10 @@
 package net.servboot.test;
 
-import net.servboot.context.DataBaseContext;
+import net.servboot.orm.context.DataBaseContext;
 import net.servboot.orm.DataSet;
 import net.servboot.orm.ModelIterator;
 import net.servboot.orm.Query;
+import net.servboot.thread.ThreadManager;
 import net.servboot.utils.reflection.orm.OrmReflectionUtils;
 import java.lang.invoke.MethodHandles;
 import java.sql.SQLException;
@@ -15,14 +16,15 @@ public class PersonService implements IService<Person> {
     }
 
     public ModelIterator<Person> findAll() throws SQLException, InterruptedException {
-        return Query.executeQuery(DataBaseContext.getPersonDataSet().getCommand(), (resultSet) -> {
+        DataSet<Person> dataSet = (DataSet<Person>) ThreadManager.getCurrentThread().getLocal(DataBaseContext.class.getName());
+        return Query.executeQuery(dataSet.getCommand(), (resultSet) -> {
             return new ModelIterator<>(Person.class, resultSet);
         });
     }
 
     public Person findById(int id) throws InterruptedException, SQLException {
         Person person = new Person();
-        DataSet<Person> dataSet = DataBaseContext.getPersonDataSet();
+        DataSet<Person> dataSet = (DataSet<Person>) ThreadManager.getCurrentThread().getLocal(DataBaseContext.class.getName());
         dataSet.filter("id", "=", id);
 
         Query.executeQuery(dataSet.getCommand(), (resultSet) -> {

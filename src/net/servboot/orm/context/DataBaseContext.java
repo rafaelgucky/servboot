@@ -1,12 +1,12 @@
-package net.servboot.context;
+package net.servboot.orm.context;
 
 import net.servboot.orm.DataSet;
 import net.servboot.test.Person;
 import net.servboot.test.User;
 
-public class DataBaseContext {
-    public DataSet<Person> personDataSet = new DataSet<>(Person.class);
-    public DataSet<User> userDataSet = new DataSet<>(User.class);
+public class DataBaseContext extends DbContext {
+    private final DataSet<Person> personDataSet = new DataSet<>(Person.class);
+    private final DataSet<User> userDataSet = new DataSet<>(User.class);
 
     public DataSet<Person> getPersonDataSet() {
         return this.personDataSet;

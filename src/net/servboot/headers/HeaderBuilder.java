@@ -1,7 +1,8 @@
 package net.servboot.headers;
 
 import net.servboot.response.StatusCode;
-import net.servboot.utils.strings.FormatStringUtils;
+import net.servboot.utils.strings.StringUtils;
+
 import java.nio.charset.StandardCharsets;
 
 public final class HeaderBuilder {
@@ -16,7 +17,7 @@ public final class HeaderBuilder {
     private static byte[] build(Headers headers, short responseCode, String fileName, long contentLength, boolean download) {
         StringBuilder header = new StringBuilder();
 
-        header.append("HTTP/1.1 ").append(responseCode).append(" ").append(FormatStringUtils.addSpaceOnUpperCase(StatusCode.getFromCode(responseCode).name())).append("\r\n");
+        header.append("HTTP/1.1 ").append(responseCode).append(" ").append(StringUtils.addSpaceOnUpperCase(StatusCode.getFromCode(responseCode).name())).append("\r\n");
         switch (headers.getValue()) {
             case 0:
                 header.append("Content-Type: text/html; charset=UTF-8\r\n");

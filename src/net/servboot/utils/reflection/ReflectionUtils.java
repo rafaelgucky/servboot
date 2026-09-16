@@ -128,20 +128,23 @@ public class ReflectionUtils {
         }
     }
 
-    public static <T> T callGetter(Object obj, String propertyName)
-            throws IllegalAccessException, InvocationTargetException {
+    public static <T> T callGetter(Object obj, String propertyName) {
         if (propertyName.isBlank()) {
             return null;
         }
 
-        if (propertyName.contains(".")) {
-            String newPropertyName = propertyName.substring(0, 1).toLowerCase() + propertyName.substring(1, propertyName.indexOf("."));
-            Method method = getMethod(obj, newPropertyName, "get");
-            Object newObj = method.invoke(obj);
+        try {
+            if (propertyName.contains(".")) {
+                String newPropertyName = propertyName.substring(0, 1).toLowerCase() + propertyName.substring(1, propertyName.indexOf("."));
+                Method method = getMethod(obj, newPropertyName, "get");
+                Object newObj = method.invoke(obj);
 
-            return callGetter(newObj, propertyName.substring(newPropertyName.length() + 1));
-        } else {
-            return (T) getMethod(obj, propertyName, "get").invoke(obj);
+                return callGetter(newObj, propertyName.substring(newPropertyName.length() + 1));
+            } else {
+                return (T) getMethod(obj, propertyName, "get").invoke(obj);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 

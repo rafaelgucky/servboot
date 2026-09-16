@@ -1,7 +1,6 @@
 package net.servboot.utils.reflection.orm;
 
 import net.servboot.annotations.*;
-import net.servboot.annotations.enums.EntityLoad;
 import net.servboot.orm.Condition;
 import net.servboot.orm.Join;
 import net.servboot.orm.enums.JoinType;
@@ -47,7 +46,7 @@ public class OrmReflectionUtils {
     }
 
 
-    public static String getDbFieldName(Field field){
+    public static String getDbFieldName(Field field) {
         Column column = field.getAnnotation(Column.class);
         return column != null && !column.name().isEmpty() ? column.name() : field.getName().toLowerCase();
     }
@@ -75,7 +74,15 @@ public class OrmReflectionUtils {
     }
 
     public static boolean isForeign(Field field) {
-        return field.getAnnotation(OneToMany.class) != null || field.getAnnotation(OneToOne.class) != null;
+        return isOneToMany(field) || isOneToOne(field);
+    }
+
+    public static boolean isOneToOne(Field field) {
+        return field.getAnnotation(OneToOne.class) != null;
+    }
+
+    public static boolean isOneToMany(Field field) {
+        return field.getAnnotation(OneToMany.class) != null;
     }
 
     public static Class<?> getForeignType(Field field) {
@@ -133,6 +140,8 @@ public class OrmReflectionUtils {
 
         return join;
     }
+
+//    public static
 
     public static <T> Field getFieldByJoinName(Class<T> clazz, String joinName) {
         Set<Field> fields = ReflectionUtils.getAllFields(clazz);
