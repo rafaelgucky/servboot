@@ -6,7 +6,7 @@ import net.servboot.annotations.POST;
 import net.servboot.annotations.Path;
 import net.servboot.orm.context.DataBaseContext;
 import net.servboot.controllers.ControllerBase;
-import net.servboot.orm.DataSet;
+import net.servboot.orm.context.DataSet;
 import net.servboot.orm.Insert;
 import net.servboot.response.Response;
 import java.io.File;
@@ -65,19 +65,20 @@ public class PersonController extends ControllerBase {
     @Path("create")
     public Response create(Person person) {
         Person p = new Person();
-        p.setId(1);
         p.setName("Teste");
-        p.setCpf("123.456.789-00");
+        p.setLastName("Silva");
+        p.setCpf("123.456.789-01");
         p.setDateOfBirth(Date.from(Instant.now()));
-        p.setEmail("teste@gmail.com");
+        p.setEmail("teste1@gmail.com");
         p.setRecordDateTime(LocalDateTime.now());
         Insert<Person> insert = new Insert<>(p);
         String command = insert.getCommand();
 
         DataSet<Person> dataSet = this.dataBaseContext.getPersonDataSet();
 
-        dataSet.add(person);
-        return ok(person);
+        dataSet.put(p);
+        dataSet.persist();
+        return ok(p);
     }
 
     @POST

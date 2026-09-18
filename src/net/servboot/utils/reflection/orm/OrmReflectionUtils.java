@@ -41,10 +41,31 @@ public class OrmReflectionUtils {
     public static Set<Field> getKeys(Class<?> clazz) {
         return ReflectionUtils.getAllFields(clazz).stream()
                 .filter(field -> Arrays.stream(field.getAnnotations())
-                        .anyMatch(annotation -> annotation.annotationType().equals(Key.class)))
+                .anyMatch(annotation -> annotation.annotationType().equals(Key.class)))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
+    public static Set<String> getKeysAsString(Class<?> clazz) {
+        return getKeysAsString(clazz, "");
+    }
+
+    public static Set<String> getKeysAsString(Class<?> clazz, String prefix) {
+        Set<String> stringKeys = new LinkedHashSet<>();
+        Set<Field> keys = ReflectionUtils.getAllFields(clazz).stream()
+                .filter(field -> Arrays.stream(field.getAnnotations())
+                .anyMatch(annotation -> annotation.annotationType().equals(Key.class)))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        for (Field field : keys) {
+            if (isForeign(field)) {
+                stringKeys.addAll(getKeysAsString(getForeignType(field), prefix + field.getName() + "."));
+            } else {
+                stringKeys.add(prefix + field.getName());
+            }
+        }
+
+        return stringKeys;
+    }
 
     public static String getDbFieldName(Field field) {
         Column column = field.getAnnotation(Column.class);

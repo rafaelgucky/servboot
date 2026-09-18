@@ -36,6 +36,10 @@ public class Insert <T> {
 
         List<InsertColumMap> columns = new LinkedList<>();
 
+        if (1 == 1) {
+            throw new RuntimeException("Ajustar a geração do sql de inserção. Não está colocando o nome do campo no banco corretamente");
+        }
+
         try {
             for (Field field : fields) {
                 if (OrmReflectionUtils.isOneToOne(field)) {

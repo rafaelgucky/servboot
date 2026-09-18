@@ -1,5 +1,6 @@
 package net.servboot.orm;
 
+import net.servboot.orm.context.DataSet;
 import net.servboot.utils.reflection.ReflectionUtils;
 import net.servboot.utils.reflection.orm.OrmReflectionUtils;
 import java.io.Closeable;
@@ -50,9 +51,9 @@ public class ModelIterator<T> implements Iterable<T>, Closeable {
                         queriedColumns = OrmReflectionUtils.getQueriedColumns(resultSet);
                     }
 
-                    T model = ReflectionUtils.instantiate(clazz, false);
+                    T model = ReflectionUtils.instantiate(clazz);
                     OrmReflectionUtils.fillEntityFromResultSet(model, resultSet, queriedColumns);
-                    dataSet.add(model);
+                    dataSet.put(model);
 
                     return model;
                 } catch (Exception ex) {

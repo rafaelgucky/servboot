@@ -1,7 +1,7 @@
 package net.servboot.test;
 
 import net.servboot.orm.context.DataBaseContext;
-import net.servboot.orm.DataSet;
+import net.servboot.orm.context.DataSet;
 import net.servboot.orm.ModelIterator;
 import net.servboot.orm.Query;
 import net.servboot.thread.ThreadManager;

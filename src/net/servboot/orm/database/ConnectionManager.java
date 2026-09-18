@@ -83,8 +83,12 @@ public class ConnectionManager {
         }
     }
 
-    public static void begin() throws SQLException, InterruptedException {
-        begin(getConnection(Thread.currentThread().getName()));
+    public static void begin() {
+        try {
+            begin(getConnection(Thread.currentThread().getName()));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static void begin(Connection connection) throws SQLException {
@@ -103,13 +107,19 @@ public class ConnectionManager {
         }
     }
 
-    public static void commit() throws SQLException, InterruptedException {
-        commit(getConnection(Thread.currentThread().getName()));
+    public static void commit() {
+        try {
+            commit(getConnection(Thread.currentThread().getName()));
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public static void commit(Connection connection) throws SQLException {
+    public static void commit(Connection connection) {
         try (Statement stmt = connection.createStatement()) {
             stmt.execute("\n commit;");
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 

@@ -1,12 +1,15 @@
-package net.servboot.orm;
+package net.servboot.orm.context;
 
+import net.servboot.orm.*;
+import net.servboot.orm.database.ConnectionManager;
 import net.servboot.orm.enums.Operator;
 import net.servboot.utils.reflection.ReflectionUtils;
 import net.servboot.utils.reflection.orm.OrmReflectionUtils;
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.stream.Collectors;
 
-public class DataSet<T> extends LinkedHashSet<T> {
+public class DataSet<T> extends LinkedHashSet<EntityHolder<T>> {
     private int limit;
     private final Class<T> entityClass;
     private final Select<T> select;
@@ -62,18 +65,22 @@ public class DataSet<T> extends LinkedHashSet<T> {
     }
 
     @Override
-    public boolean add(T t) {
-        if (!contains(t)) {
+    public boolean add(EntityHolder<T> t) {
+        if (!contains(t.getEntity())) {
             return super.add(t);
         }
 
         return false;
     }
 
+    public boolean put(T entity) {
+        return this.add(new EntityHolder<>(entity, EntityState.CREATED));
+    }
+
     @Override
     public boolean contains(Object o) {
         try {
-            for (T entity : this) {
+            for (T entity : this.stream().map(EntityHolder::getEntity).collect(Collectors.toSet())) {
                 if (OrmReflectionUtils.equals(entity, o)) {
                     return true;
                 }
@@ -189,5 +196,59 @@ public class DataSet<T> extends LinkedHashSet<T> {
 
     public List<T> find() {
         return findAsIterable().toList();
+    }
+
+    private boolean fillKeys(T entity) {
+        StringBuilder command = new StringBuilder();
+        StringBuilder order = new  StringBuilder();
+        Set<String> keys = OrmReflectionUtils.getKeysAsString(entity.getClass());
+
+        try {
+            command.append("select ");
+            order.append(" order by ");
+
+            int count = 0;
+            for (String key : keys) {
+                Field field = ReflectionUtils.getField(entity.getClass(), key);
+                command.append("(").append(OrmReflectionUtils.getDbFieldName(field)).append(" + 1) as \"").append(key).append("\"");
+                order.append(OrmReflectionUtils.getDbFieldName(field)).append(" desc ");
+
+                if (count != keys.size() - 1) {
+                    command.append(",");
+                    order.append(",");
+                }
+            }
+            command.append(" from ").append(OrmReflectionUtils.getTableName(entity.getClass()));
+            command.append(order);
+            command.append(" limit 1 ");
+            command.append(" for update");
+
+            Query.executeQuery(command.toString(), resultSet -> {
+                resultSet.next();
+                OrmReflectionUtils.fillEntityFromResultSet(entity, resultSet);
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        return true;
+    }
+
+    public boolean persist() {
+        ConnectionManager.begin();
+
+        for (EntityHolder<T> entityHolder : this) {
+            switch (entityHolder.getEntityState()) {
+                case EntityState.CREATED:
+                    fillKeys(entityHolder.getEntity());
+                    Insert<T> insert = new Insert<>(entityHolder.getEntity());
+                    Query.executeUpdate(insert.getCommand());
+                    break;
+            }
+        }
+
+        ConnectionManager.commit();
+
+        return true;
     }
 }
