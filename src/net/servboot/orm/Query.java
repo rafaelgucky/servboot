@@ -34,7 +34,7 @@ public class Query {
 
             return result;
         }catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(sql, e);
         }
     }
 
@@ -50,7 +50,7 @@ public class Query {
             ResultSet resultSet = statement.executeQuery();
             consumer.accept(resultSet);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(sql, e);
         }
     }
 
@@ -72,7 +72,7 @@ public class Query {
 
             return result;
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(sql, e);
         }
     }
 
@@ -92,7 +92,7 @@ public class Query {
         ) {
             return statement.executeUpdate(sql);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(sql, e);
         }
     }
 
@@ -106,7 +106,7 @@ public class Query {
 
             return statement.executeUpdate();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(sql, e);
         }
     }
 

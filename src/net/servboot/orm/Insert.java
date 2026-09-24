@@ -81,7 +81,7 @@ public class Insert <T> {
             }
         }
 
-        command.append(")");
+        command.append(");\n");
         return command.toString();
     }
 }

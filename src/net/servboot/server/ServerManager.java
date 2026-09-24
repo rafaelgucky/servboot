@@ -5,7 +5,6 @@ import net.servboot.thread.ThreadManager;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.StandardSocketOptions;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
@@ -14,7 +13,7 @@ import java.util.function.Consumer;
 public final class ServerManager {
     private static int port = 5000;
     private static int maxRequests = Integer.MAX_VALUE;
-    private static boolean running = true;
+    private static volatile boolean running = true;
     private static ServerSocket server;
     private static Consumer<Exception> logger;
     private static final List<ClientRequestTask> threadsPool = new LinkedList<>();
@@ -64,11 +63,9 @@ public final class ServerManager {
 
     public static ClientRequestTask getThread() throws InterruptedException {
         synchronized (threadsPool) {
-            long freeMemory = Runtime.getRuntime().freeMemory();
-            long totalMemory = Runtime.getRuntime().totalMemory();
-            long maxMemory = Runtime.getRuntime().maxMemory();
-
-            if (totalMemory * 100 / maxMemory >= 90 && freeMemory / 1024 / 1024 < 50) {
+            // (getTotalMemory() * 100 / getMaxMemory() >= 90) -> se a ocupação é maior que 90%
+            // (getFreeMemory() / 1024 / 1024 < 50) -> se a memória livre é menor que 50MB
+            if (getTotalMemory() * 100.0 / getMaxMemory() >= 90 && getFreeMemory() / 1024 / 1024 < 50) {
                 System.gc();
             }
 
@@ -108,5 +105,21 @@ public final class ServerManager {
             thread.setClient(client);
             thread.start();
         }
+    }
+
+    public static long getFreeMemory() {
+        return Runtime.getRuntime().freeMemory();
+    }
+
+    public static long getTotalMemory() {
+        return Runtime.getRuntime().totalMemory();
+    }
+
+    public  static long getMaxMemory() {
+        return Runtime.getRuntime().maxMemory();
+    }
+
+    public static int getExecutingThreads() {
+        return Thread.activeCount();
     }
 }

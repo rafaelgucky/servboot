@@ -3,10 +3,7 @@ package net.servboot.orm;
 import net.servboot.utils.reflection.ReflectionUtils;
 import net.servboot.utils.reflection.orm.OrmReflectionUtils;
 import java.lang.reflect.Field;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Select <T> {
@@ -32,7 +29,7 @@ public class Select <T> {
         }
 
         if (this.columns.isEmpty()) {
-            this.columns = this.generateColumns(entityClass, Object.class, dbPrefix, entityPrefix);
+            this.columns = this.generateColumns(entityClass, Object.class, Map.of(), dbPrefix, entityPrefix);
         }
 
         return this.columns;
@@ -42,10 +39,24 @@ public class Select <T> {
         this.columns = columns;
     }
 
-    protected final List<ColumnMap> generateColumns(Class<?> entityClass, Class<?> parentClass, String dbPrefix, String entityPrefix) {
-        Set<Field> fields = ReflectionUtils.getAllFields(entityClass).stream()
-                .filter(field -> !ReflectionUtils.isStatic(field) && !ReflectionUtils.isTransient(field))
-                .collect(Collectors.toSet());
+    public static <T> Select<T> of(Class<T> entityClass) {
+        return new Select<>(entityClass);
+    }
+
+    public static <T> Select<T> of(Class<T> entityClass, Map<Class<?>, Set<Field>> fieldsMap) {
+        Select<T> select = new Select<>(entityClass);
+        select.setColumns(select.generateColumns(entityClass, Object.class, fieldsMap, "", ""));
+
+        return select;
+    }
+
+    protected final List<ColumnMap> generateColumns(Class<?> entityClass, Class<?> parentClass, Map<Class<?>, Set<Field>> fieldsMap, String dbPrefix, String entityPrefix) {
+        Set<Field> fields = Objects.requireNonNullElse(
+                fieldsMap.get(entityClass),
+                ReflectionUtils.getAllFields(entityClass).stream()
+                        .filter(field -> !ReflectionUtils.isStatic(field) && !ReflectionUtils.isTransient(field))
+                        .collect(Collectors.toSet())
+        );
 
         List<ColumnMap> columns = new LinkedList<>();
 
@@ -56,9 +67,9 @@ public class Select <T> {
         for (Field field : fields) {
             if (OrmReflectionUtils.isForeign(field)) {
                 if (Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)) != parentClass) {
-                    columns.addAll(this.generateColumns(Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)), entityClass, OrmReflectionUtils.getTableName(Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)), false) + ".",  entityPrefix + Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)).getSimpleName() + "."));
+                    columns.addAll(this.generateColumns(Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)), entityClass, fieldsMap, OrmReflectionUtils.getTableName(Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)), false) + ".",  entityPrefix + Objects.requireNonNull(OrmReflectionUtils.getForeignType(field)).getSimpleName() + "."));
                 }
-            } else if (!ReflectionUtils.isTransient(field)) {
+            } else {
                 columns.add(new ColumnMap(dbPrefix + OrmReflectionUtils.getDbFieldName(field), entityPrefix + field.getName()));
             }
         }

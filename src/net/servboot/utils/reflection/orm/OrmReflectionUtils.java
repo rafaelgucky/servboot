@@ -162,8 +162,6 @@ public class OrmReflectionUtils {
         return join;
     }
 
-//    public static
-
     public static <T> Field getFieldByJoinName(Class<T> clazz, String joinName) {
         Set<Field> fields = ReflectionUtils.getAllFields(clazz);
 
@@ -262,10 +260,8 @@ public class OrmReflectionUtils {
         }
 
         if (hasOneToMany) {
-            if (resultSet.next()) {
-                if (compareKeys(entity, resultSet)) {
-                    fillEntityFromResultSet(entity, resultSet, columns, removePrefix);
-                }
+            if (resultSet.next() && compareKeys(entity, resultSet)) {
+                fillEntityFromResultSet(entity, resultSet, columns, removePrefix);
             } else {
                 resultSet.previous();
             }
@@ -317,17 +313,14 @@ public class OrmReflectionUtils {
     }
 
     public static <T> boolean compareKeys(T entity, ResultSet resultSet)
-        throws SQLException, IllegalAccessException, InvocationTargetException {
-        Set<Field> keys = getKeys(entity.getClass());
+        throws SQLException, NoSuchFieldException {
+        Set<String> keys = getKeysAsString(entity.getClass());
 
-        if (true) {
-            //throw new RuntimeException("Ajustar: o nome da coluna que virá do banco nem sempre será getDbFieldName(field)");
-        }
-
-        for (Field field : keys) {
+        for (String stringKey : keys) {
+            Field field = ReflectionUtils.getField(entity.getClass(), stringKey);
             String columnName = getDbFieldName(field);
 
-            if (ReflectionUtils.callGetter(entity, field.getName()) != resultSet.getObject(columnName)) {
+            if (ReflectionUtils.callGetter(entity, stringKey) != resultSet.getObject(columnName)) {
                 return false;
             }
         }

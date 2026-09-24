@@ -9,6 +9,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class ReflectionUtils {
     @SuppressWarnings("unchecked")
@@ -111,21 +113,8 @@ public class ReflectionUtils {
         return (T) constructs[0].newInstance(instances);
     }
 
-    public static void callSetter(Object obj, String propertyName, Object value)
-            throws NoSuchFieldException, IllegalAccessException, InvocationTargetException, InstantiationException {
-        if (propertyName.isBlank()) {
-            return;
-        }
-
-        if (propertyName.contains(".")) {
-            String newPropertyName = propertyName.substring(0, 1).toLowerCase() + propertyName.substring(1, propertyName.indexOf("."));
-            Object newObj = Objects.requireNonNullElse(callGetter(obj, newPropertyName), instantiate(obj.getClass().getField(newPropertyName).getType(), false));
-            callSetter(obj, newPropertyName, newObj);
-            callSetter(newObj, propertyName.substring(newPropertyName.length() + 1), value);
-        } else {
-            Method method = getMethod(obj, propertyName, "set");
-            method.invoke(obj, value);
-        }
+    public static void callSetter(Object obj, String propertyName, Object value) {
+        callMethod(obj, propertyName, "set", value);
     }
 
     public static <T> T callGetter(Object obj, String propertyName) {
@@ -148,6 +137,26 @@ public class ReflectionUtils {
         }
     }
 
+    public static void callMethod(Object obj, String methodName, String methodPrefix, Object parameter) {
+        if (methodName.isBlank()) {
+            return;
+        }
+
+        try {
+            if (methodName.contains(".")) {
+                String newPropertyName = methodPrefix + methodName.substring(0, 1).toLowerCase() + methodName.substring(1, methodName.indexOf("."));
+                Object newObj = Objects.requireNonNullElse(callGetter(obj, newPropertyName), instantiate(obj.getClass().getField(newPropertyName).getType()));
+                callMethod(obj, newPropertyName, methodPrefix, newObj);
+                callMethod(newObj, methodName.substring(newPropertyName.length() + 1), methodPrefix, parameter);
+            } else {
+                Method method = getMethod(obj, methodName, methodPrefix);
+                method.invoke(obj, parameter);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static Method getMethod(Object obj, String propertyName, String prefix) {
         String methodName = prefix + propertyName.substring(0, 1).toUpperCase() + propertyName.substring(1);
         return Objects.requireNonNull(Arrays.stream(obj.getClass().getMethods())
@@ -160,6 +169,14 @@ public class ReflectionUtils {
         return getField(clazz, fieldName, Integer.MAX_VALUE);
     }
 
+    /**
+     * Returns a class field
+     * @param clazz base class
+     * @param fieldName field name (it may contain dots)
+     * @param searchLevel search level
+     * @return field or throw exception
+     * @throws NoSuchFieldException if field no found
+     */
     public static Field getField(Class<?> clazz, String fieldName, int searchLevel) throws NoSuchFieldException {
         if (clazz == null || fieldName.isBlank()) return null;
 
@@ -180,5 +197,53 @@ public class ReflectionUtils {
                 .filter(f -> f.getName().equalsIgnoreCase(tempFieldName))
                 .findAny()
                 .get();
+    }
+
+    /**
+     * Clone an object
+     * @param obj
+     * @return
+     * @param <T>
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T clone(T obj) {
+        T newObj;
+        Set<Field> properties = getAllFields(obj.getClass()).stream()
+                .filter(p -> !isStatic(p) && !isTransient(p))
+                .collect(Collectors.toSet());
+
+        //todo
+
+        if (1 == 1) {
+            throw new RuntimeException("Method not implemented!");
+        }
+        try {
+            newObj = (T) instantiate(obj.getClass());
+
+            for (Field property : properties) {
+                Object value = callGetter(obj, property.getName());
+                Object newValue = value;
+
+                if (value instanceof Iterable<?> iterableValue) {
+                    newValue = new LinkedList<>();
+
+                    for (Object item : iterableValue) {
+                        callMethod(newValue, "add", "", item);
+                    }
+                }
+
+                callSetter(newObj, property.getName(), newValue);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        return newObj;
+    }
+
+    public static void copyTo(Object from, Object to, Set<Field> properties) {
+        for (Field property : properties) {
+            callSetter(to, property.getName(), callGetter(from, property.getName()));
+        }
     }
 }

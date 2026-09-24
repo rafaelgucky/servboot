@@ -57,14 +57,6 @@ public class DataSet<T> extends LinkedHashSet<EntityHolder<T>> {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public DataSet<T> clone() {
-        DataSet<T> clone = (DataSet<T>) super.clone();
-        clone.reset();
-        return clone;
-    }
-
-    @Override
     public boolean add(EntityHolder<T> t) {
         if (!contains(t.getEntity())) {
             return super.add(t);
@@ -170,7 +162,8 @@ public class DataSet<T> extends LinkedHashSet<EntityHolder<T>> {
                 Condition.getCommand(this.conditions) +
                 Group.getCommand(this.groups) +
                 Order.getCommand(this.orders) +
-                (this.limit > 0 ? " limit " + this.limit : "");
+                (this.limit > 0 ? " limit " + this.limit : "")
+                + ";";
     }
 
     public DataSet<T> filter(String field, String operator, Object value) {
@@ -201,7 +194,12 @@ public class DataSet<T> extends LinkedHashSet<EntityHolder<T>> {
     private boolean fillKeys(T entity) {
         StringBuilder command = new StringBuilder();
         StringBuilder order = new  StringBuilder();
-        Set<String> keys = OrmReflectionUtils.getKeysAsString(entity.getClass());
+        Set<String> keys = OrmReflectionUtils.getKeysAsString(entity.getClass()).stream()
+                .filter(k -> {
+                    Object value = ReflectionUtils.callGetter(entity, k);
+                    return value != null && !value.toString().isBlank() && ((int) value) != 0;
+                })
+                .collect(Collectors.toSet());
 
         try {
             command.append("select ");
@@ -240,7 +238,10 @@ public class DataSet<T> extends LinkedHashSet<EntityHolder<T>> {
         for (EntityHolder<T> entityHolder : this) {
             switch (entityHolder.getEntityState()) {
                 case EntityState.CREATED:
-                    fillKeys(entityHolder.getEntity());
+                    if (!fillKeys(entityHolder.getEntity())) {
+                        throw new RuntimeException("Cannot fill entity keys: " + entityHolder.getEntity().getClass().getName());
+                    }
+
                     Insert<T> insert = new Insert<>(entityHolder.getEntity());
                     Query.executeUpdate(insert.getCommand());
                     break;
