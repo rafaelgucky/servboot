@@ -28,8 +28,8 @@ public class OrmReflectionUtils {
 
     public static String getTableName(Class<?> clazz, boolean addSchema){
         Table table = clazz.getAnnotation(Table.class);
-        if(table == null || table.value().isEmpty()) return clazz.getSimpleName();
-        return addSchema ? table.schema() + "." + table.value() : table.value();
+        if(table == null || table.tableName().isEmpty()) return clazz.getSimpleName();
+        return addSchema ? table.schema() + "." + table.tableName() : table.tableName();
     }
 
     public static Field getForeignField(Class<?> clazz, String fieldName) {
@@ -84,7 +84,7 @@ public class OrmReflectionUtils {
 
     public static Set<Field> getForeignFields(Class<?> clazz) {
         return ReflectionUtils.getAllFields(clazz).stream()
-                .filter(OrmReflectionUtils::isForeign)
+                .filter(f -> isForeign(f) && !ReflectionUtils.isTransient(f) && !ReflectionUtils.isStatic(f))
                 .collect(Collectors.toSet());
     }
 
@@ -121,45 +121,56 @@ public class OrmReflectionUtils {
     }
 
     public static List<Join> getJoins(Class<?> clazz) {
+        return getJoins(clazz, Object.class, null, null);
+    }
+
+    public static List<Join> getJoins(Class<?> clazz, Class<?> parentClass, Join parentJoin, String alias) {
         List<Join> joins = new LinkedList<>();
 
         for (Field foreignField : getForeignFields(clazz)) {
-            joins.add(generateJoin(clazz, foreignField));
+            Class<?> foreignType = Objects.requireNonNull(getForeignType(foreignField));
+            alias = parentClass == Object.class ? foreignField.getName().toLowerCase() : "\"" + alias.replace("\"", "") + "_" + foreignField.getName().toLowerCase() + "\"";
+
+            Join join = new Join(foreignType, JoinType.LEFT_JOIN, getTableName(foreignType), alias, parentJoin);
+
+            buildJoin(join, clazz, foreignField);
+            joins.add(join);
+
+            if (!foreignType.equals(parentClass)) {
+                joins.addAll(getJoins(foreignType, clazz, join, alias));
+            }
         }
 
         return joins;
     }
 
-    public static Join generateJoin(Class<?> parent, Field child) {
-        Join join = null;
+    public static void buildJoin(Join join, Class<?> parent, Field child) {
+        Class<?> foreignType = Objects.requireNonNull(getForeignType(child));
 
         OneToMany oneToMany = child.getAnnotation(OneToMany.class);
         if (oneToMany != null) {
-            join = new Join(JoinType.LEFT_JOIN, getTableName(oneToMany.targetClass()));
-
             for (Field field : getKeys(OrmReflectionUtils.getForeignType(child))) {
                 join.addCondition(
                         new Condition(
-                                getTableName(oneToMany.targetClass(), false) + "." + getTableName(parent, false) + StringUtils.upperFirst(field.getName()),
+                                join.getAlias() + "." + getTableName(parent, false) + StringUtils.upperFirst(field.getName()),
                                 Operator.EQUAL,
-                                getTableName(parent, false) + "." + OrmReflectionUtils.getDbFieldName(field)
+                                (join.getAliasParent() != null ? join.getAliasParent() : OrmReflectionUtils.getTableName(parent)) + "." + OrmReflectionUtils.getDbFieldName(field)
                         )
                 );
             }
         } else {
             OneToOne oneToOne = child.getAnnotation(OneToOne.class);
             if (oneToOne != null) {
-                join = new Join(JoinType.LEFT_JOIN, getTableName(oneToOne.targetClass() != null ?  oneToOne.targetClass() : child.getType()));
-
-                for (Field field : getKeys(OrmReflectionUtils.getForeignType(child))) {
-                    join.addCondition(new Condition( getTableName(parent) + "." + Objects.requireNonNull(OrmReflectionUtils.getForeignType(child)).getSimpleName().toLowerCase() + StringUtils.upperFirst(field.getName()), Operator.EQUAL, getTableName(Objects.requireNonNull(OrmReflectionUtils.getForeignType(child))) + "." + getDbFieldName(field)));
+                for (Field field : getKeys(foreignType)) {
+                    join.addCondition(new Condition(
+                            join.getAlias() + "." + getDbFieldName(field),
+                            Operator.EQUAL,
+                            (join.getAliasParent() != null ? join.getAliasParent() : OrmReflectionUtils.getTableName(parent)) + "." + Objects.requireNonNull(OrmReflectionUtils.getForeignType(child)).getSimpleName().toLowerCase() + StringUtils.upperFirst(field.getName())
+                            )
+                    );
                 }
             }
         }
-
-        Objects.requireNonNull(join);
-
-        return join;
     }
 
     public static <T> Field getFieldByJoinName(Class<T> clazz, String joinName) {
@@ -205,65 +216,57 @@ public class OrmReflectionUtils {
 
     public static <T> void fillEntityFromResultSet(T entity, ResultSet resultSet, List<String> columns, String removePrefix)
             throws SQLException, NoSuchFieldException, IllegalAccessException, InvocationTargetException, InstantiationException {
-        boolean hasOneToMany = false;
-
         for (int i = 0; i < columns.size(); i++) {
             String column = columns.get(i);
 
             if (removePrefix.isBlank() || column.startsWith(removePrefix)) {
+                column = StringUtils.removePrefix(column, removePrefix);
+
                 if  (resultSet.getObject(i + 1) == null) {
                     continue;
                 }
 
-                // Se a propriedade não existir, é uma FK
-                try {
-                    Field field = ReflectionUtils.getField(entity.getClass(), StringUtils.removePrefix(column, removePrefix));
-                    ReflectionUtils.callSetter(entity, StringUtils.removePrefix(column, removePrefix), getValue(resultSet, field.getType(), i + 1));
-                } catch (NoSuchFieldException e) {
-                    Field field = Objects.requireNonNull(getFieldByJoinName(entity.getClass(), column.substring(0, column.indexOf("."))));
-                    hasOneToMany = true;
-                    String rmPrefix = "";
+                // Se for um tipo composto
+                if (column.contains(".")) {
+                    String property = column.substring(0, column.indexOf("."));
+                    Field foreignField = ReflectionUtils.getField(entity.getClass(), property);
+                    Class<?> foreignType = OrmReflectionUtils.getForeignType(foreignField);
+                    Object newEntity = isOneToMany(foreignField) ? ReflectionUtils.instantiate(foreignType) : Objects.requireNonNullElseGet(ReflectionUtils.callGetter(entity, property), () -> {
+                                try {
+                                    return ReflectionUtils.instantiate(foreignType);
+                                } catch (Exception ex) {
+                                    throw new RuntimeException(ex);
+                                }
+                            }
+                    );
 
-                    OneToMany oneToMany = field.getAnnotation(OneToMany.class);
-                    if (oneToMany != null) {
-                        rmPrefix = oneToMany.targetClass().getSimpleName() + ".";
-                        Object fkEntity = ReflectionUtils.instantiate(oneToMany.targetClass(), false);
+                    fillEntityFromResultSet(newEntity, resultSet, columns, StringUtils.concat(removePrefix, property, "."));
 
-                        fillEntityFromResultSet(fkEntity, resultSet, columns, rmPrefix);
-
-                        Collection<Object> c = ReflectionUtils.callGetter(entity, field.getName());
-                        if (c != null) {
-                            c.add(fkEntity);
-                        } else {
-                            LinkedList<Object> list = new LinkedList<>();
-                            list.add(fkEntity);
-                            ReflectionUtils.callSetter(entity, field.getName(), list);
-                        }
-                    }
-
-                    OneToOne oneToOne = field.getAnnotation(OneToOne.class);
-                    if (oneToOne != null) {
-                        Class<?> fkClass = oneToOne.targetClass() != void.class ? oneToOne.targetClass() : field.getType();
-                        rmPrefix = fkClass.getSimpleName() + ".";
-                        Object fkEntity = ReflectionUtils.instantiate(fkClass, false);
-
-                        fillEntityFromResultSet(fkEntity, resultSet, columns, rmPrefix);
-                        ReflectionUtils.callSetter(entity, field.getName(), fkEntity);
-                    }
-
-                    while (i < columns.size() && columns.get(i).toLowerCase().startsWith(rmPrefix.toLowerCase())) {
+                    while (i < columns.size() && columns.get(i).toLowerCase().startsWith(removePrefix.toLowerCase())) {
                         i++;
                     }
                     i--; // Remove loop for auto incrementation
-                }
-            }
-        }
 
-        if (hasOneToMany) {
-            if (resultSet.next() && compareKeys(entity, resultSet)) {
-                fillEntityFromResultSet(entity, resultSet, columns, removePrefix);
-            } else {
-                resultSet.previous();
+                    if (isOneToMany(foreignField)) {
+                        Collection<Object> list = ReflectionUtils.callGetter(entity, property);
+                        if (list == null) {
+                            list = new LinkedList<>();
+                            ReflectionUtils.callSetter(entity, property, list);
+                        }
+                        list.add(newEntity);
+
+                        if (resultSet.next() && compareKeys(entity, resultSet, removePrefix)) {
+                            fillEntityFromResultSet(entity, resultSet, columns, removePrefix);
+                        } else {
+                            resultSet.previous();
+                        }
+                    } else if (isOneToOne(foreignField)) {
+                        ReflectionUtils.callSetter(entity, property, newEntity);
+                    }
+                } else {
+                    Field field = ReflectionUtils.getField(entity.getClass(), StringUtils.removePrefix(column, removePrefix));
+                    ReflectionUtils.callSetter(entity, StringUtils.removePrefix(column, removePrefix), getValue(resultSet, field.getType(), i + 1));
+                }
             }
         }
     }
@@ -312,7 +315,7 @@ public class OrmReflectionUtils {
         }
     }
 
-    public static <T> boolean compareKeys(T entity, ResultSet resultSet)
+    public static <T> boolean compareKeys(T entity, ResultSet resultSet, String prefix)
         throws SQLException, NoSuchFieldException {
         Set<String> keys = getKeysAsString(entity.getClass());
 
@@ -320,7 +323,7 @@ public class OrmReflectionUtils {
             Field field = ReflectionUtils.getField(entity.getClass(), stringKey);
             String columnName = getDbFieldName(field);
 
-            if (ReflectionUtils.callGetter(entity, stringKey) != resultSet.getObject(columnName)) {
+            if (ReflectionUtils.callGetter(entity, stringKey) != resultSet.getObject(StringUtils.concat(prefix, columnName))) {
                 return false;
             }
         }

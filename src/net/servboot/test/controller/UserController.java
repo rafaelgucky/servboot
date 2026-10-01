@@ -1,4 +1,4 @@
-package net.servboot.test;
+package net.servboot.test.controller;
 
 import net.servboot.annotations.Controller;
 import net.servboot.annotations.GET;
@@ -6,6 +6,7 @@ import net.servboot.annotations.Path;
 import net.servboot.controllers.ControllerBase;
 import net.servboot.orm.context.DataBaseContext;
 import net.servboot.response.Response;
+import net.servboot.test.model.User;
 
 @Controller("user")
 public class UserController extends ControllerBase {

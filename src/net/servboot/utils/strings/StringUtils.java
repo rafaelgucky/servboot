@@ -132,6 +132,19 @@ public class StringUtils {
         return result;
     }
 
+    public static String concat(String... strings) {
+        if (strings.length == 0) return "";
+        else if (strings.length <= 2) return strings[0] + strings[1];
+
+        StringBuilder sb = new StringBuilder();
+
+        for (String s : strings) {
+            sb.append(s);
+        }
+
+        return sb.toString();
+    }
+
     public static String formatUrl(String url) {
         if(url == null || url.isEmpty()) return "";
         return url.substring(0, (url.lastIndexOf('/') >= url.length() - 1 ? url.lastIndexOf('/') : url.length()));

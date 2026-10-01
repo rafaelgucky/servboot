@@ -1,4 +1,6 @@
-package net.servboot.test;
+package net.servboot.test.model;
+
+import net.servboot.test.service.IService;
 
 public abstract class Entity {
     protected static IService<?> service;

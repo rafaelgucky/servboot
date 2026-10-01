@@ -1,4 +1,4 @@
-package net.servboot.test;
+package net.servboot.test.controller;
 
 import net.servboot.annotations.Controller;
 import net.servboot.annotations.GET;

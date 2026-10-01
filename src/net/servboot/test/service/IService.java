@@ -1,4 +1,4 @@
-package net.servboot.test;
+package net.servboot.test.service;
 
 import net.servboot.orm.ModelIterator;
 

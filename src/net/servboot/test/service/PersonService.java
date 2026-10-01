@@ -1,8 +1,9 @@
-package net.servboot.test;
+package net.servboot.test.service;
 
 import net.servboot.orm.context.DataSet;
 import net.servboot.orm.ModelIterator;
 import net.servboot.orm.Query;
+import net.servboot.test.model.Person;
 import net.servboot.utils.reflection.orm.OrmReflectionUtils;
 import java.lang.invoke.MethodHandles;
 import java.sql.SQLException;

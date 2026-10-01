@@ -1,4 +1,4 @@
-package net.servboot.test;
+package net.servboot.test.controller;
 
 import net.servboot.annotations.Controller;
 import net.servboot.annotations.GET;
@@ -10,10 +10,11 @@ import net.servboot.controllers.ControllerBase;
 import net.servboot.orm.context.DataSet;
 import net.servboot.orm.Insert;
 import net.servboot.response.Response;
+import net.servboot.test.model.Person;
+import net.servboot.test.service.PersonService;
 import net.servboot.utils.reflection.ReflectionUtils;
 import java.io.File;
 import java.io.FileInputStream;
-import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -38,6 +39,7 @@ public class PersonController extends ControllerBase {
     @Path("all")
     public Response findAll() throws Exception {
         DataSet<Person> personDataSet = dataBaseContext.getPersonDataSet();
+
         List<Person> people = personDataSet.find();
 
         return ok(people);
@@ -46,7 +48,7 @@ public class PersonController extends ControllerBase {
     @GET("find/{id}")
     @Path("find/{id}")
     public Response find(int id) throws Exception {
-        Select<Person> select = Select.of(Person.class, Map.of(Person.class, ReflectionUtils.getAllFields(Person.class).stream().filter(f -> f.getName().equalsIgnoreCase("id")).collect(Collectors.toSet())));
+        Select<Person> select = Select.of(Person.class);
         return ok(personService.findById(id));
     }
 

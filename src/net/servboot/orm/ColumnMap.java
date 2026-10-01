@@ -1,5 +1,7 @@
 package net.servboot.orm;
 
+import net.servboot.utils.strings.StringUtils;
+
 public class ColumnMap {
     private String dbColumnName;
     private String entityFieldName;
@@ -23,5 +25,9 @@ public class ColumnMap {
 
     public void setEntityFieldName(String entityFieldName) {
         this.entityFieldName = entityFieldName;
+    }
+
+    public String getCommand() {
+        return StringUtils.concat(getDbColumnName(), " as ", "\"", getEntityFieldName(), "\"");
     }
 }

@@ -1,8 +1,5 @@
 package net.servboot.routing;
 
-import net.servboot.test.PersonController;
-import net.servboot.test.PersonService;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 

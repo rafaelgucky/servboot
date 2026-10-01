@@ -1,4 +1,4 @@
-package net.servboot.test;
+package net.servboot.test.model;
 
 import net.servboot.annotations.*;
 import java.time.LocalDateTime;
@@ -6,7 +6,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
-@Table(value = "person", schema = "eventer")
+@Table(tableName = "person", schema = "eventer")
 public class Person extends Entity {
 
     @Key(value = "id")

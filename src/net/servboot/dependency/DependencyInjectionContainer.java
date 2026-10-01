@@ -34,7 +34,7 @@ public class DependencyInjectionContainer {
 
     public static <T> T getRequestScoped(Class<T> clazz) throws IllegalAccessException, InstantiationException, InvocationTargetException {
         if (!requestScoped.contains(clazz)) return null;
-        return ReflectionUtils.instantiate(clazz, false);
+        return ReflectionUtils.instantiate(clazz);
     }
 
     public static List<Class<?>> getAllRequestScoped() {

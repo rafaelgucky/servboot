@@ -2,7 +2,7 @@ import net.servboot.Application;
 import net.servboot.orm.context.DataBaseContext;
 import net.servboot.orm.database.ConnectionManager;
 import net.servboot.orm.Query;
-import net.servboot.test.PersonService;
+import net.servboot.test.service.PersonService;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;

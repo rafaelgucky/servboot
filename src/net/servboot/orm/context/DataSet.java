@@ -5,9 +5,12 @@ import net.servboot.orm.database.ConnectionManager;
 import net.servboot.orm.enums.Operator;
 import net.servboot.utils.reflection.ReflectionUtils;
 import net.servboot.utils.reflection.orm.OrmReflectionUtils;
+import net.servboot.utils.strings.StringUtils;
+
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class DataSet<T> extends LinkedHashSet<EntityHolder<T>> {
     private int limit;
@@ -20,8 +23,8 @@ public class DataSet<T> extends LinkedHashSet<EntityHolder<T>> {
 
     public DataSet(Class<T> entityClass) {
         this.entityClass = entityClass;
-        this.select = new Select<>(entityClass);
         this.joins = OrmReflectionUtils.getJoins(entityClass);
+        this.select = new Select<>(entityClass, this.joins);
     }
 
     public int getLimit() {
@@ -157,13 +160,16 @@ public class DataSet<T> extends LinkedHashSet<EntityHolder<T>> {
     }
 
     public String getCommand() {
-        return this.select.getCommand() +
-                Join.getCommand(this.joins) +
-                Condition.getCommand(this.conditions) +
-                Group.getCommand(this.groups) +
-                Order.getCommand(this.orders) +
-                (this.limit > 0 ? " limit " + this.limit : "")
-                + ";";
+        String command = StringUtils.concat(
+                this.select.getCommand(),
+                Join.getCommand(this.joins),
+                Condition.getCommand(this.conditions),
+                Group.getCommand(this.groups),
+                Order.getCommand(this.orders),
+                (this.limit > 0 ? " limit " + this.limit : ""),
+                ";");
+
+        return command;
     }
 
     public DataSet<T> filter(String field, String operator, Object value) {
@@ -193,33 +199,32 @@ public class DataSet<T> extends LinkedHashSet<EntityHolder<T>> {
 
     private boolean fillKeys(T entity) {
         StringBuilder command = new StringBuilder();
-        StringBuilder order = new  StringBuilder();
         Set<String> keys = OrmReflectionUtils.getKeysAsString(entity.getClass()).stream()
                 .filter(k -> {
                     Object value = ReflectionUtils.callGetter(entity, k);
-                    return value != null && !value.toString().isBlank() && ((int) value) != 0;
+                    return value == null || value.toString().isBlank() || ((int) value) == 0;
                 })
                 .collect(Collectors.toSet());
 
         try {
             command.append("select ");
-            order.append(" order by ");
 
             int count = 0;
             for (String key : keys) {
                 Field field = ReflectionUtils.getField(entity.getClass(), key);
-                command.append("(").append(OrmReflectionUtils.getDbFieldName(field)).append(" + 1) as \"").append(key).append("\"");
-                order.append(OrmReflectionUtils.getDbFieldName(field)).append(" desc ");
+                command.append("coalesce((")
+                        .append("max(")
+                        .append(OrmReflectionUtils.getDbFieldName(field))
+                        .append(") + 1), 1)")
+                        .append(" as \"")
+                        .append(key)
+                        .append("\"");
 
                 if (count != keys.size() - 1) {
                     command.append(",");
-                    order.append(",");
                 }
             }
             command.append(" from ").append(OrmReflectionUtils.getTableName(entity.getClass()));
-            command.append(order);
-            command.append(" limit 1 ");
-            command.append(" for update");
 
             Query.executeQuery(command.toString(), resultSet -> {
                 resultSet.next();

@@ -1,10 +1,10 @@
-package net.servboot.test;
+package net.servboot.test.model;
 
 import net.servboot.annotations.Key;
 import net.servboot.annotations.OneToOne;
 import net.servboot.annotations.Table;
 
-@Table(value = "tbuser", schema = "eventer")
+@Table(tableName = "tbuser", schema = "eventer")
 public class User {
 
     @Key
