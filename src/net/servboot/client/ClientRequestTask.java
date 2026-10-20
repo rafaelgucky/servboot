@@ -10,6 +10,7 @@ import net.servboot.io.ShortArrayInputStream;
 import net.servboot.request.Request;
 import net.servboot.response.Response;
 import net.servboot.server.ServerManager;
+import net.servboot.server.ThreadExecutor;
 import net.servboot.utils.io.NameGenerator;
 import net.servboot.utils.json.Json;
 import net.servboot.utils.reflection.ReflectionUtils;
@@ -178,8 +179,8 @@ public final class ClientRequestTask extends Thread implements Closeable, Compar
                 this.getOnFinalize().accept(this);
             }
 
-            ServerManager.getThreadsNames().push(this.getName());
-            ServerManager.removeThread(this);
+            ThreadExecutor.getInstance().getThreadNames().push(this.getName());
+            ThreadExecutor.getInstance().removeThread(this);
 
             this.cleanFiles();
             this.interrupt();
