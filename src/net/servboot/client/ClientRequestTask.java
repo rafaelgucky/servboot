@@ -1,6 +1,5 @@
 package net.servboot.client;
 
-import net.servboot.dependency.DependencyInjectionContainer;
 import net.servboot.headers.HeaderBuilder;
 import net.servboot.headers.Headers;
 import net.servboot.io.FormDataReader;
@@ -10,8 +9,7 @@ import net.servboot.io.ShortArrayInputStream;
 import net.servboot.request.Request;
 import net.servboot.response.Response;
 import net.servboot.server.ServerManager;
-import net.servboot.server.ThreadExecutor;
-import net.servboot.utils.io.NameGenerator;
+import net.servboot.server.ClientExecutor;
 import net.servboot.utils.json.Json;
 import net.servboot.utils.reflection.ReflectionUtils;
 import net.servboot.utils.reflection.method.MethodUtils;
@@ -108,8 +106,8 @@ public final class ClientRequestTask extends Thread implements Closeable, Compar
             try {
                 controllerResult = this.request.getRoute().call(MethodUtils.getSortedParameters(this.request.getRoute().getMethod(), this.request.getParameters(), this.request.getFiles()));
             } catch (Exception e) {
-                if (ServerManager.getLogger() != null) {
-                    ServerManager.getLogger().accept(e);
+                if (ServerManager.getInstance().getLogger() != null) {
+                    ServerManager.getInstance().getLogger().accept(e);
                 }
                 return;
             }
@@ -179,8 +177,8 @@ public final class ClientRequestTask extends Thread implements Closeable, Compar
                 this.getOnFinalize().accept(this);
             }
 
-            ThreadExecutor.getInstance().getThreadNames().push(this.getName());
-            ThreadExecutor.getInstance().removeThread(this);
+            ClientExecutor.getInstance().getThreadNames().push(this.getName());
+            ClientExecutor.getInstance().removeThread(this);
 
             this.cleanFiles();
             this.interrupt();

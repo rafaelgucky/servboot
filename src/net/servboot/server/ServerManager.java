@@ -4,65 +4,100 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.function.Consumer;
 
-public final class ServerManager {
-    private static int port = 5000;
-    private static volatile boolean running = true;
-    private static ServerSocket server;
-    private static Consumer<Exception> logger;
+public final class ServerManager implements IServerManager {
+    private static ServerManager instance;
+    private int port = 5000;
+    private volatile boolean running = true;
+    private ServerSocket server;
+    private final IClientExecutor clientExecutor;
+    private Consumer<Exception> logger;
 
-    public static ServerSocket getServer() {
+    private ServerManager(IClientExecutor clientExecutor) {
+        this.clientExecutor = clientExecutor;
+    }
+
+    public static ServerManager getInstance() {
+        if (instance == null) {
+            instance = new ServerManager(ClientExecutor.getInstance());
+        }
+
+        return instance;
+    }
+
+    @Override
+    public int getPort() {
+        return port;
+    }
+
+    @Override
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    @Override
+    public ServerSocket getServer() {
         return server;
     }
 
-    public static void setLogger(Consumer<Exception> logger) {
-        ServerManager.logger = logger;
+    @Override
+    public IClientExecutor getClientExecutor() {
+        return clientExecutor;
     }
 
-    public static Consumer<Exception> getLogger() {
+    @Override
+    public Consumer<Exception> getLogger() {
         return logger;
     }
 
-
-    public static void setPort(int p) {
-        port = p;
+    @Override
+    public void setLogger(Consumer<Exception> logger) {
+        this.logger = logger;
     }
 
-    public static void setMaxRequests(int mr) {
-        ThreadExecutor.getInstance().setMaxExecutors(mr);
+    @Override
+    public int getMaxRequests() {
+        return getClientExecutor().getMaxExecutors();
     }
 
-    public static boolean initServer(){
-        try{
-            server = new ServerSocket(port);
-            return true;
-        } catch(IOException ex){
-            return false;
+    @Override
+    public void setMaxRequests(int maxRequests) {
+        getClientExecutor().setMaxExecutors(maxRequests);
+    }
+
+    @Override
+    public void initServer() throws IOException {
+        server = new ServerSocket(port);
+    }
+
+    @Override
+    public void startServer() throws IOException {
+        while(running) {
+            getClientExecutor().addClient(server.accept());
         }
     }
 
+    @Override
     public void stopServer() {
         running = false;
     }
 
-    public static void startServer() throws IOException {
-        while(running) {
-            ThreadExecutor.getInstance().addClient(server.accept());
-        }
-    }
-
-    public static long getFreeMemory() {
+    @Override
+    public long getFreeMemory() {
         return Runtime.getRuntime().freeMemory();
     }
 
-    public static long getTotalMemory() {
+    @Override
+    public long getTotalMemory() {
         return Runtime.getRuntime().totalMemory();
     }
 
-    public  static long getMaxMemory() {
+    @Override
+    public long getMaxMemory() {
         return Runtime.getRuntime().maxMemory();
     }
 
-    public static int getExecutingThreads() {
+    @Override
+    public int getExecutingThreads() {
         return Thread.activeCount();
     }
 }
