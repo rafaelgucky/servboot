@@ -9,16 +9,15 @@ public final class ServerManager implements IServerManager {
     private int port = 5000;
     private volatile boolean running = true;
     private ServerSocket server;
-    private final IClientExecutor clientExecutor;
+    private IClientExecutor clientExecutor;
     private Consumer<Exception> logger;
 
-    private ServerManager(IClientExecutor clientExecutor) {
-        this.clientExecutor = clientExecutor;
-    }
+    private ServerManager() { }
 
     public static ServerManager getInstance() {
         if (instance == null) {
-            instance = new ServerManager(ClientExecutor.getInstance());
+            instance = new ServerManager();
+            instance.setClientExecutor(ClientExecutor.getInstance());
         }
 
         return instance;
@@ -42,6 +41,10 @@ public final class ServerManager implements IServerManager {
     @Override
     public IClientExecutor getClientExecutor() {
         return clientExecutor;
+    }
+
+    private void setClientExecutor(IClientExecutor clientExecutor) {
+        this.clientExecutor = clientExecutor;
     }
 
     @Override

@@ -8,6 +8,7 @@ import net.servboot.io.ServBootFile;
 import net.servboot.io.ShortArrayInputStream;
 import net.servboot.request.Request;
 import net.servboot.response.Response;
+import net.servboot.server.IServerManager;
 import net.servboot.server.ServerManager;
 import net.servboot.server.ClientExecutor;
 import net.servboot.utils.json.Json;
@@ -23,8 +24,22 @@ import java.util.function.Consumer;
 public final class ClientRequestTask extends Thread implements Closeable, Comparable<ClientRequestTask> {
     private Socket client;
     private Request request;
+    private final IServerManager serverManager;
     private Consumer<ClientRequestTask> onFinalize;
     private final Map<String, Object> locals = new LinkedHashMap<>();
+
+    public ClientRequestTask() {
+        this.serverManager = ServerManager.getInstance();
+    }
+
+    public ClientRequestTask(Socket client, IServerManager serverManager) {
+        this.client = client;
+        this.serverManager = serverManager;
+    }
+
+    public Socket getClient() {
+        return client;
+    }
 
     public void setClient(Socket client) {
         this.client = client;
@@ -32,6 +47,10 @@ public final class ClientRequestTask extends Thread implements Closeable, Compar
 
     public Request getRequest() {
         return this.request;
+    }
+
+    public IServerManager getServerManager() {
+        return serverManager;
     }
 
     public void setOnFinalize(Consumer<ClientRequestTask> onFinalize) {
@@ -85,8 +104,7 @@ public final class ClientRequestTask extends Thread implements Closeable, Compar
             }
 
             if(request.getContentLength() > 0){
-                if(request.getContentType().contains("multipart/form-data"))
-                {
+                if(request.getContentType().contains("multipart/form-data")) {
                     FormDataReader fdr = new FormDataReader(in, isr, shortArray, request.getHeader("boundary"), request.getContentLength());
                     Map<String, Object> formData = fdr.readFormData();
                     for(Map.Entry<String, Object> entry : formData.entrySet()){
@@ -106,8 +124,8 @@ public final class ClientRequestTask extends Thread implements Closeable, Compar
             try {
                 controllerResult = this.request.getRoute().call(MethodUtils.getSortedParameters(this.request.getRoute().getMethod(), this.request.getParameters(), this.request.getFiles()));
             } catch (Exception e) {
-                if (ServerManager.getInstance().getLogger() != null) {
-                    ServerManager.getInstance().getLogger().accept(e);
+                if (getServerManager().getLogger() != null) {
+                    getServerManager().getLogger().accept(e);
                 }
                 return;
             }

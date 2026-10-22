@@ -11,6 +11,7 @@ import java.util.Stack;
 public class ClientExecutor implements IClientExecutor {
     private static ClientExecutor instance;
     private int maxExecutors = Byte.MAX_VALUE;
+    private IServerManager serverManager;
     private Thread executor;
     private final Queue<Socket> clients;
     private final List<ClientRequestTask> executors;
@@ -26,6 +27,7 @@ public class ClientExecutor implements IClientExecutor {
         synchronized (ClientExecutor.class) {
             if (instance == null) {
                 instance = new ClientExecutor();
+                instance.setServerManager(ServerManager.getInstance());
                 try {
                     instance.start();
                 } catch (InterruptedException e) {
@@ -45,6 +47,15 @@ public class ClientExecutor implements IClientExecutor {
     @Override
     public void setMaxExecutors(int maxExecutors) {
         this.maxExecutors = maxExecutors;
+    }
+
+    @Override
+    public IServerManager getServerManager() {
+        return serverManager;
+    }
+
+    private void setServerManager(IServerManager serverManager) {
+        this.serverManager = serverManager;
     }
 
     @Override
@@ -118,10 +129,10 @@ public class ClientExecutor implements IClientExecutor {
 
     private ClientRequestTask getThread() throws InterruptedException {
         synchronized (executors) {
-            long usedMemory = ServerManager.getInstance().getTotalMemory() - ServerManager.getInstance().getFreeMemory();
+            long usedMemory = getServerManager().getTotalMemory() - getServerManager().getFreeMemory();
 
             // if the memory used is greater than 90% of the total memory
-            if (usedMemory > ServerManager.getInstance().getMaxMemory() * 0.9) {
+            if (usedMemory > getServerManager().getMaxMemory() * 0.9) {
                 System.gc();
             }
 
