@@ -1,8 +1,8 @@
 package net.servboot.test.model;
 
-import net.servboot.annotations.Key;
-import net.servboot.annotations.OneToOne;
-import net.servboot.annotations.Table;
+import net.servboot.orm.annotations.Key;
+import net.servboot.orm.annotations.OneToOne;
+import net.servboot.orm.annotations.Table;
 
 @Table(tableName = "tbuser", schema = "eventer")
 public class User {

@@ -1,6 +1,6 @@
-package net.servboot.annotations;
+package net.servboot.orm.annotations;
 
-import net.servboot.annotations.enums.EntityLoad;
+import net.servboot.orm.annotations.enums.EntityLoad;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

@@ -15,6 +15,11 @@ public class Main {
             application.addRequestScoped(DataBaseContext.class);
             application.init();
             application.setLogger(Main::onException);
+
+            System.out.println("ServBoot: Loading connections...");
+            ConnectionManager.init();
+            System.out.println("ServBoot: Connections loaded!");
+
             application.run();
         } catch (Exception ex) {
             ex.printStackTrace();

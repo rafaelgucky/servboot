@@ -1,6 +1,6 @@
 package net.servboot.utils.reflection.orm;
 
-import net.servboot.annotations.*;
+import net.servboot.orm.annotations.*;
 import net.servboot.orm.Condition;
 import net.servboot.orm.Join;
 import net.servboot.orm.enums.JoinType;
@@ -67,6 +67,33 @@ public class OrmReflectionUtils {
         return stringKeys;
     }
 
+    public static Map<String, String> getForeignDbName(Field field) {
+        Class<?> foreignType = Objects.requireNonNull(getForeignType(field));
+        Map<String, String> stringKeys = new LinkedHashMap<>();
+        OneToOne oneToOne = field.getAnnotation(OneToOne.class);
+        OneToMany oneToMany = field.getAnnotation(OneToMany.class);
+        KeyMap[] keys = null;
+
+        if (oneToOne != null) {
+            keys = oneToOne.keys();
+        } else if (oneToMany != null) {
+            keys = oneToMany.keys();
+        }
+
+        if (keys != null && keys.length > 0) {
+            for (KeyMap keyMap : keys) {
+                stringKeys.put(keyMap.key(), keyMap.value());
+            }
+        } else {
+            Set<Field> foreignKeys = OrmReflectionUtils.getKeys(foreignType);
+            for (Field foreignKey : foreignKeys) {
+                stringKeys.put(foreignKey.getName(), StringUtils.concat(foreignType.getSimpleName().toLowerCase(), foreignKey.getName()));
+            }
+        }
+
+        return stringKeys;
+    }
+
     public static String getDbFieldName(Field field) {
         Column column = field.getAnnotation(Column.class);
         return column != null && !column.name().isEmpty() ? column.name() : field.getName().toLowerCase();
@@ -127,25 +154,30 @@ public class OrmReflectionUtils {
     public static List<Join> getJoins(Class<?> clazz, Class<?> parentClass, Join parentJoin, String alias) {
         List<Join> joins = new LinkedList<>();
 
-        for (Field foreignField : getForeignFields(clazz)) {
-            Class<?> foreignType = Objects.requireNonNull(getForeignType(foreignField));
-            alias = parentClass == Object.class ? foreignField.getName().toLowerCase() : "\"" + alias.replace("\"", "") + "_" + foreignField.getName().toLowerCase() + "\"";
+        try {
+            for (Field foreignField : getForeignFields(clazz)) {
+                Class<?> foreignType = Objects.requireNonNull(getForeignType(foreignField));
+                alias = parentClass == Object.class ? foreignField.getName().toLowerCase() : "\"" + alias.replace("\"", "") + "_" + foreignField.getName().toLowerCase() + "\"";
 
-            Join join = new Join(foreignType, JoinType.LEFT_JOIN, getTableName(foreignType), alias, parentJoin);
+                Join join = new Join(foreignType, JoinType.LEFT_JOIN, getTableName(foreignType), alias, parentJoin);
 
-            buildJoin(join, clazz, foreignField);
-            joins.add(join);
+                buildJoin(join, clazz, foreignField);
+                joins.add(join);
 
-            if (!foreignType.equals(parentClass)) {
-                joins.addAll(getJoins(foreignType, clazz, join, alias));
+                if (!foreignType.equals(parentClass)) {
+                    joins.addAll(getJoins(foreignType, clazz, join, alias));
+                }
             }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
 
         return joins;
     }
 
-    public static void buildJoin(Join join, Class<?> parent, Field child) {
+    public static void buildJoin(Join join, Class<?> parent, Field child) throws NoSuchFieldException {
         Class<?> foreignType = Objects.requireNonNull(getForeignType(child));
+        Map<String, String> foreignKeys = getForeignDbName(child);
 
         OneToMany oneToMany = child.getAnnotation(OneToMany.class);
         if (oneToMany != null) {
@@ -161,11 +193,11 @@ public class OrmReflectionUtils {
         } else {
             OneToOne oneToOne = child.getAnnotation(OneToOne.class);
             if (oneToOne != null) {
-                for (Field field : getKeys(foreignType)) {
+                for (String foreignKey : foreignKeys.keySet()) {
                     join.addCondition(new Condition(
-                            join.getAlias() + "." + getDbFieldName(field),
-                            Operator.EQUAL,
-                            (join.getAliasParent() != null ? join.getAliasParent() : OrmReflectionUtils.getTableName(parent)) + "." + Objects.requireNonNull(OrmReflectionUtils.getForeignType(child)).getSimpleName().toLowerCase() + StringUtils.upperFirst(field.getName())
+                                    join.getAlias() + "." + getDbFieldName(ReflectionUtils.getField(foreignType, foreignKey)),
+                                    Operator.EQUAL,
+                                    StringUtils.concat(join.getAliasParent() != null ? join.getAliasParent() : OrmReflectionUtils.getTableName(parent), ".", foreignKeys.get(foreignKey))
                             )
                     );
                 }

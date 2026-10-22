@@ -28,7 +28,7 @@ public class UserController extends ControllerBase {
     public Response create(User user) {
         User u = new User();
         u.setPerson(dataBaseContext.getPersonDataSet().find().getFirst());
-        dataBaseContext.getUserDataSet().put(u);
+        dataBaseContext.getUserDataSet().create(u);
         dataBaseContext.getUserDataSet().persist();
         return ok(u);
     }

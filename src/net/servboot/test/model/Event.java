@@ -1,6 +1,6 @@
 package net.servboot.test.model;
 
-import net.servboot.annotations.*;
+import net.servboot.orm.annotations.*;
 import java.util.List;
 
 @Table(tableName = "tbevent", schema = "eventer")
@@ -11,8 +11,20 @@ public class Event {
     private String name;
     @Column(name = "description", notNull = true)
     private String description;
-    @OneToOne(targetClass = User.class)
+    @OneToOne(
+            targetClass = User.class,
+            keys = {
+                    @KeyMap(key = "id", value = "ownerId")
+            }
+    )
     private User owner;
+    @OneToOne(
+            targetClass = User.class,
+            keys = {
+                    @KeyMap(key = "id", value = "subOwnerId")
+            }
+    )
+    private transient User subOwner;
     @OneToMany(targetClass = Person.class)
     private transient List<Person> people;
 

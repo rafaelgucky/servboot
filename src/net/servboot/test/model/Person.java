@@ -1,6 +1,6 @@
 package net.servboot.test.model;
 
-import net.servboot.annotations.*;
+import net.servboot.orm.annotations.*;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;

@@ -68,23 +68,35 @@ public class DataSet<T> extends LinkedHashSet<EntityHolder<T>> {
         return false;
     }
 
-    public boolean put(T entity) {
+    public boolean create(T entity) {
         return this.add(new EntityHolder<>(entity, EntityState.CREATED));
+    }
+
+    public void update(T entity) {
+        Objects.requireNonNull(getEntityHolder(entity)).setEntityState(EntityState.UPDATED);
+    }
+
+    public void delete(T entity) {
+        Objects.requireNonNull(getEntityHolder(entity)).setEntityState(EntityState.DELETED);
     }
 
     @Override
     public boolean contains(Object o) {
+        return getEntityHolder((T) o) != null;
+    }
+
+    protected EntityHolder<T> getEntityHolder(T entity) {
         try {
-            for (T entity : this.stream().map(EntityHolder::getEntity).collect(Collectors.toSet())) {
-                if (OrmReflectionUtils.equals(entity, o)) {
-                    return true;
+            for (EntityHolder<T> holder : this) {
+                if (OrmReflectionUtils.equals(entity, holder.getEntity())) {
+                    return holder;
                 }
             }
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
 
-        return false;
+        return null;
     }
 
     public void addCondition(List<Condition> conditions) {

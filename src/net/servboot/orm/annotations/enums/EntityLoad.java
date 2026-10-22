@@ -1,4 +1,4 @@
-package net.servboot.annotations.enums;
+package net.servboot.orm.annotations.enums;
 
 public enum EntityLoad {
     LAZY,

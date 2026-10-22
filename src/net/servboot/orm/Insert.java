@@ -2,10 +2,10 @@ package net.servboot.orm;
 
 import net.servboot.utils.reflection.ReflectionUtils;
 import net.servboot.utils.reflection.orm.OrmReflectionUtils;
+import net.servboot.utils.strings.StringUtils;
+
 import java.lang.reflect.Field;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Insert <T> {
@@ -36,18 +36,18 @@ public class Insert <T> {
 
         List<InsertColumMap> columns = new LinkedList<>();
 
-        if (1 == 1) {
-            throw new RuntimeException("Ajustar a geração do sql de inserção. Não está colocando o nome do campo no banco corretamente");
-        }
-
         try {
             for (Field field : fields) {
                 if (OrmReflectionUtils.isOneToOne(field)) {
-                    Class<?> foreignClass = OrmReflectionUtils.getForeignType(field);
-                    for (Field foreignFieldKey : OrmReflectionUtils.getKeys(foreignClass)) {
-                        columns.add(new InsertColumMap(OrmReflectionUtils.getDbFieldName(foreignFieldKey), foreignFieldKey.getName(), ReflectionUtils.callGetter(this.entity, field.getName() + "." + foreignFieldKey.getName())));
-                    }
+                    Map<String, String> keysMap = OrmReflectionUtils.getForeignDbName(field);
 
+                    for (String foreignKey : keysMap.keySet()) {
+                        columns.add(new InsertColumMap(
+                                keysMap.get(foreignKey),
+                                foreignKey,
+                                ReflectionUtils.callGetter(this.entity, StringUtils.concat(field.getName(), ".", foreignKey)))
+                        );
+                    }
                 } else {
                     columns.add(new InsertColumMap(OrmReflectionUtils.getDbFieldName(field), field.getName(), ReflectionUtils.callGetter(this.entity, field.getName())));
                 }

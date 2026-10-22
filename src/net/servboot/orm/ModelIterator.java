@@ -53,7 +53,7 @@ public class ModelIterator<T> implements Iterable<T>, Closeable {
 
                     T model = ReflectionUtils.instantiate(clazz);
                     OrmReflectionUtils.fillEntityFromResultSet(model, resultSet, queriedColumns);
-                    dataSet.put(model);
+                    dataSet.create(model);
 
                     return model;
                 } catch (Exception ex) {

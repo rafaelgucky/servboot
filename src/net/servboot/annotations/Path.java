@@ -1,4 +1,4 @@
-package net.servboot.orm.annotations;
+package net.servboot.annotations;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

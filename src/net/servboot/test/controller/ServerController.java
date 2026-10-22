@@ -6,6 +6,8 @@ import net.servboot.annotations.Path;
 import net.servboot.controllers.ControllerBase;
 import net.servboot.response.Response;
 import net.servboot.server.ServerManager;
+import net.servboot.server.ClientExecutor;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,11 +20,11 @@ public class ServerController extends ControllerBase {
         Map<String, Object> info = new HashMap<>();
 
         info.put("unit", "MB");
-        info.put("totalMemory", ServerManager.getTotalMemory() / 1024 / 1024);
-        info.put("freeMemory", ServerManager.getFreeMemory() / 1024 / 1024);
-        info.put("maxMemory", ServerManager.getMaxMemory() / 1024 / 1024);
-        info.put("memoryOccupation", (ServerManager.getTotalMemory() - ServerManager.getFreeMemory()) / 1024 / 1024);
-        info.put("activeThreads", ServerManager.getExecutingThreads());
+        info.put("totalMemory", ServerManager.getInstance().getTotalMemory() / 1024 / 1024);
+        info.put("freeMemory", ServerManager.getInstance().getFreeMemory() / 1024 / 1024);
+        info.put("maxMemory", ServerManager.getInstance().getMaxMemory() / 1024 / 1024);
+        info.put("memoryOccupation", (ServerManager.getInstance().getTotalMemory() - ServerManager.getInstance().getFreeMemory()) / 1024 / 1024);
+        info.put("activeThreads", ServerManager.getInstance().getExecutingThreads());
 
         return ok(info);
     }
@@ -37,12 +39,12 @@ public class ServerController extends ControllerBase {
     @GET
     @Path("count")
     public Response count() {
-        return ok(ServerManager.getExecutingThreads());
+        return ok(ServerManager.getInstance().getExecutingThreads());
     }
 
     @GET
     @Path("namesPool")
     public Response namesPool() {
-        return ok(ServerManager.getThreadsNames());
+        return ok(ClientExecutor.getInstance().getThreadNames());
     }
 }

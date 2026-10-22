@@ -1,6 +1,7 @@
 package net.servboot.orm;
 
 import net.servboot.orm.enums.JoinType;
+import net.servboot.utils.reflection.orm.OrmReflectionUtils;
 import net.servboot.utils.strings.StringUtils;
 
 import java.util.LinkedList;
@@ -14,8 +15,12 @@ public class Join {
     private Join parentJoin;
     private List<Condition> conditions;
 
-    public Join() {
-        this.conditions = new LinkedList<>();
+    public Join(Class<?> entityType, JoinType type) {
+        this(entityType, type, OrmReflectionUtils.getTableName(entityType), OrmReflectionUtils.getTableName(entityType), null);
+    }
+
+    public Join(Class<?> entityType, JoinType type, String table, String alias) {
+        this(entityType, type, table, alias, null);
     }
 
     public Join(Class<?> entityType, JoinType type, String table, String alias, Join parentJoin) {

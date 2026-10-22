@@ -12,7 +12,7 @@ import net.servboot.orm.Insert;
 import net.servboot.response.Response;
 import net.servboot.test.model.Person;
 import net.servboot.test.service.PersonService;
-import net.servboot.utils.reflection.ReflectionUtils;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.time.Instant;
@@ -21,7 +21,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Controller("person")
 public class PersonController extends ControllerBase {
@@ -84,7 +83,7 @@ public class PersonController extends ControllerBase {
 
         DataSet<Person> dataSet = this.dataBaseContext.getPersonDataSet();
 
-        dataSet.put(p);
+        dataSet.create(p);
         dataSet.persist();
         return ok(p);
     }
