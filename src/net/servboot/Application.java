@@ -1,6 +1,7 @@
 package net.servboot;
 
 import net.servboot.dependency.DependencyInjectionContainer;
+import net.servboot.dependency.IDependencyInjectionContainer;
 import net.servboot.routing.RouterManager;
 import net.servboot.server.IServerManager;
 import net.servboot.server.ServerManager;
@@ -10,6 +11,7 @@ import java.util.function.Consumer;
 
 public final class Application {
     private final IServerManager serverManager;
+    private final IDependencyInjectionContainer dependencyInjectionContainer;
 
     public Application() {
       this(Byte.MAX_VALUE);
@@ -23,10 +25,15 @@ public final class Application {
         serverManager = ServerManager.getInstance();
         getServerManager().setPort(port);
         getServerManager().setMaxRequests(maxRequests);
+        dependencyInjectionContainer = DependencyInjectionContainer.getInstance();
     }
 
-    private IServerManager getServerManager() {
+    public IServerManager getServerManager() {
         return serverManager;
+    }
+
+    public IDependencyInjectionContainer getDependencyInjectionContainer() {
+        return dependencyInjectionContainer;
     }
 
     public void setMaxRequests(int maxRequests) {
@@ -35,7 +42,7 @@ public final class Application {
 
     public void init() throws Exception {
         System.out.println("ServBoot: Loading routes...");
-        RouterManager.init();
+        RouterManager.getInstance().init();
         System.out.println("ServBoot: Routes loaded!");
 
         System.out.println("ServBoot: Starting server...");
@@ -50,11 +57,11 @@ public final class Application {
     // ============= Container DI ========================//
 
     public void addRequestScoped(Class<?> clazz){
-        DependencyInjectionContainer.addRequestScoped(clazz);
+        getDependencyInjectionContainer().addRequestScoped(clazz);
     }
 
     public void addApplicationScoped(Class<?> clazz)throws IllegalAccessException, InstantiationException, InvocationTargetException {
-        DependencyInjectionContainer.addApplicationScoped(clazz);
+        getDependencyInjectionContainer().addApplicationScoped(clazz);
     }
 
     // ==================== LOGGER =========================//

@@ -74,14 +74,8 @@ public class ReflectionUtils {
         return fields;
     }
 
-    public static <T> T instantiate(Class<T> clazz)
-            throws IllegalAccessException, InvocationTargetException, InstantiationException{
-        return instantiate(clazz, false);
-    }
-
-
     @SuppressWarnings("unchecked")
-    public static <T> T instantiate(Class<T> clazz, boolean fromDIContainer)
+    public static <T> T instantiate(Class<T> clazz)
             throws IllegalAccessException, InvocationTargetException, InstantiationException {
         Constructor<?>[] constructs = clazz.getDeclaredConstructors();
         Parameter[] parameters;
@@ -97,17 +91,7 @@ public class ReflectionUtils {
         }
 
         for (int i = 0; i < parameters.length; i++) {
-            if (fromDIContainer) {
-                if (DependencyInjectionContainer.getApplicationScoped(parameters[i].getType()) != null) {
-                    instances[i] = (DependencyInjectionContainer.getApplicationScoped(parameters[i].getType()));
-                } else if (DependencyInjectionContainer.getRequestScoped(parameters[i].getType()) != null) {
-                    instances[i] = (DependencyInjectionContainer.getRequestScoped(parameters[i].getType()));
-                } else {
-                    throw new InstantiationException("class not found on DI Container");
-                }
-            } else {
-                instances[i] = (ReflectionUtils.instantiate(parameters[i].getType(), false));
-            }
+            instances[i] = ReflectionUtils.instantiate(parameters[i].getType());
         }
 
         return (T) constructs[0].newInstance(instances);

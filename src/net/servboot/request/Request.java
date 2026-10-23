@@ -10,22 +10,23 @@ import java.util.List;
 import java.util.Map;
 
 public class Request {
-    private final Map<String, Object> parameters = new LinkedHashMap<>();
-    private final Map<String, String> headers = new LinkedHashMap<>();
-    private final Map<String, String> cookies = new LinkedHashMap<>();
-    private final Map<String, List<File>> files = new LinkedHashMap<>();
-    private final Route route;
-    private OutputStream clientOutputStream;
+    private int contentLength;
     private String stringMethod;
     private String url;
     private String stringBody = "";
     private String contentType = "";
-    private int contentLength;
+    private final Route route;
+    private OutputStream clientOutputStream;
+    private final Map<String, Object> parameters = new LinkedHashMap<>();
+    private final Map<String, String> headers = new LinkedHashMap<>();
+    private final Map<String, String> cookies = new LinkedHashMap<>();
+    private final Map<String, List<File>> files = new LinkedHashMap<>();
+
 
     public Request(String method, String url) throws RuntimeException {
         this.stringMethod = method.trim();
         this.url = StringUtils.formatUrl(url.trim());
-        this.route = RouterManager.getRoute(this.url);
+        this.route = RouterManager.getInstance().getRoute(this.url);
 //        if (this.route == null) throw new RuntimeException("Route not found");
         if (this.route == null) {
             Thread.currentThread().interrupt();

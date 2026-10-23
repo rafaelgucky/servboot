@@ -17,7 +17,8 @@ public abstract class DbContext {
         }
     }
 
-    public Object getEntityContext(Class<?> entityClass) {
-        return entitiesContext.get(entityClass);
+    @SuppressWarnings("unchecked")
+    public <T> DataSet<T> getDataSet(Class<T> entityClass) {
+        return (DataSet<T>) entitiesContext.get(entityClass);
     }
 }
